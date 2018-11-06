@@ -1,0 +1,5 @@
+nes.js
+*.wasm
+static/rom
+package-lock.json
+node_modules

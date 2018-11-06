@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Compile C to WebAssembly</title>
+    <script src="/nes.js"></script>
+</head>
+
+<body>
+    <h1>Compile C to WebAssembly</h1>
+    <p>The test result can be found in console.</p>
+    <script>
+        var load = Module.cwrap("load", "number", ["array", "number"]);
+
+        function convertBinaryStringToUint8Array(bStr) {
+            var i, len = bStr.length, u8_array = new Uint8Array(len);
+            for (i = 0; i < len; i++) {
+                u8_array[i] = bStr.charCodeAt(i);
+            }
+            return u8_array;
+        }
+
+        setTimeout(() => {
+            fetch("/rom/test.nes")
+                .then(response => {
+                    window.r = response;
+                    response.arrayBuffer().then(buffer => {
+                        let data = new Uint8Array(buffer);
+                        let ret = load(data, data.length);
+                        console.log(ret);
+                    })
+                })
+        }, 1000);
+    </script>
+</body>
+
+</html>

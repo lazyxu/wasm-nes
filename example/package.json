@@ -1,0 +1,14 @@
+{
+  "name": "wasm-nes-example",
+  "version": "1.0.0",
+  "description": "An example for wasm-nes Emulator.",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js"
+  },
+  "author": "Xu Liang",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.16.4"
+  }
+}
