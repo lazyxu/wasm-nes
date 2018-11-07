@@ -9,9 +9,10 @@ typedef enum
 {
     HORIZONTAL_MIRRORING,
     VERTICAL_MIRRORING,
-    FOURSCREEN_MIRRORING
+    FOURSCREEN_MIRRORING,
+    INVALID_MIRROTING
 } mirror_t;
 
-mirror_t mirror;
+mirror_t mirror = INVALID_MIRROTING;
 
 #endif //WASM_NES_MIRROR_H

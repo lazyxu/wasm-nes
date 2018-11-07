@@ -11,7 +11,7 @@
     <h1>Compile C to WebAssembly</h1>
     <p>The test result can be found in console.</p>
     <script>
-        var load = Module.cwrap("load", "number", ["array", "number"]);
+        var nes_load = Module.cwrap("nes_load", "number", ["array", "number"]);
 
         function convertBinaryStringToUint8Array(bStr) {
             var i, len = bStr.length, u8_array = new Uint8Array(len);
@@ -27,7 +27,7 @@
                     window.r = response;
                     response.arrayBuffer().then(buffer => {
                         let data = new Uint8Array(buffer);
-                        let ret = load(data, data.length);
+                        let ret = nes_load(data, data.length);
                         console.log(ret);
                     })
                 })

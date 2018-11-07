@@ -5,15 +5,29 @@
 #include "ines.h"
 #include "mirror.h"
 
-int32_t load_ines_rom(ines_t *ines_p, uint8_t *data_p, uint32_t data_len)
+void ines_free(ines_t *ines)
 {
-    if (data_p == NULL || data_len == 0)
+    ASSERT(ines != NULL);
+    FREE(ines->trainer);
+    FREE(ines->prg_rom);
+    FREE(ines->chr_rom);
+    FREE(ines->chr_ram);
+}
+
+int32_t ines_init(ines_t *ines, uint8_t *data, uint32_t data_len)
+{
+    ASSERT(ines != NULL);
+    ASSERT(ines->trainer == NULL);
+    ASSERT(ines->prg_rom == NULL);
+    ASSERT(ines->chr_rom == NULL);
+    ASSERT(ines->chr_ram == NULL);
+    if (data == NULL || data_len == 0)
     {
         return EINVALID_ARGUMENT;
     }
-    uint8_t *data_end_p = data_p + data_len;
+    uint8_t *data_end = data + data_len;
 
-    ines_header_t *header = (ines_header_t *)data_p;
+    ines_header_t *header = (ines_header_t *)data;
 
     // Identify the rom as an iNES file: NES\x1a.
     if (header->magic != INES_FILE_MAGIC)
@@ -49,33 +63,33 @@ int32_t load_ines_rom(ines_t *ines_p, uint8_t *data_p, uint32_t data_len)
 
     // battery-backed RAM
     bool battery = (header->control_1 >> 1) & 1;
-    data_p = data_p + sizeof(ines_header_t);
+    data = data + sizeof(ines_header_t);
 
     // Following the header is the 512-byte trainer, if one is present,
     // otherwise the ROM banks begin here, starting with PRG-ROM then CHR-ROM.
     if ((header->control_1 & 0b100) == 0b100)
     {
-        COPY_DATA(ines_p->trainer, TRAINER_SIZE);
+        COPY_DATA(ines->trainer, TRAINER_SIZE);
     }
 
     // Load PRG-ROM banks:
-    COPY_DATA(ines_p->prg_rom, header->num_prg * PRG_ROM_SIZE);
+    COPY_DATA(ines->prg_rom, header->num_prg * PRG_ROM_SIZE);
     if (header->num_chr != 0)
     {
         // Load CHR-ROM banks:
-        COPY_DATA(ines_p->chr_rom, header->num_chr * CHR_ROM_SIZE);
+        COPY_DATA(ines->chr_rom, header->num_chr * CHR_ROM_SIZE);
     }
     else
     {
         // Provide CHR-ROM and CHR-RAM if not in the rom:
-        ines_p->chr_rom = malloc(CHR_ROM_SIZE);
-        ines_p->chr_ram = malloc(CHR_RAM_SIZE);
+        ines->chr_rom = malloc(CHR_ROM_SIZE);
+        ines->chr_ram = malloc(CHR_RAM_SIZE);
     }
 
     // Check if the contents of rom have been completely read.
-    if (data_p != data_end_p)
+    if (data != data_end)
     {
-        LOG("%X %X\n", (uint32_t)data_p, (uint32_t)data_end_p);
+        LOG("%X %X\n", (uint32_t)data, (uint32_t)data_end);
         return EINVALID_INES_CONTENT;
     }
 

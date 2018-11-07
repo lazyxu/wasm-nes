@@ -18,11 +18,25 @@
 #define EINVALID_INES_CONTENT -3
 #define EINVALID_INES_END -4
 
+#define FREE(ptr)   \
+    do              \
+    {               \
+        free(ptr);  \
+        ptr = NULL; \
+    } while (0)
+
 #ifdef DEBUG
 
 #include <stdio.h>
 
 #define LOG printf
+
+#define ASSERT(test)                                                                          \
+    if (!(test))                                                                              \
+    {                                                                                         \
+        LOG("Assertion failed: " #test ", at: %s,%d,%s\n", __FILE__, __LINE__, __FUNCTION__); \
+        abort();                                                                              \
+    }
 
 #define HEX_DUMP(data, data_len)                                            \
     do                                                                      \
@@ -46,10 +60,11 @@
             }                                                               \
         }                                                                   \
         LOG("\n");                                                          \
-    } while (0);
+    } while (0)
 #else
 
 #define LOG(...)
+#define ASSERT(...)
 #define HEX_DUMP(...)
 
 #endif

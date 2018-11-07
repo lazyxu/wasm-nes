@@ -5,10 +5,16 @@
 #include "nes.h"
 #include "ines.h"
 
-EMSCRIPTEN_KEEPALIVE
-int32_t load(uint8_t *data_p, uint32_t data_len)
+void nes_free()
 {
-    LOG("DEBUG mode\n");
+    LOG("NES FREE\n");
+    ines_free(&ines);
+}
+
+EMSCRIPTEN_KEEPALIVE
+int32_t nes_load(uint8_t *data_p, uint32_t data_len)
+{
+    LOG("DEBUG MODE\n");
     // HEX_DUMP(data_p, data_len);
-    return load_ines_rom(&ines, data_p, data_len);
+    return ines_init(&ines, data_p, data_len);
 }

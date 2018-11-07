@@ -35,18 +35,20 @@ typedef struct
     uint8_t *chr_ram;
 } ines_t;
 
-int32_t load_ines_rom(ines_t *ines_p, uint8_t *data_p, uint32_t data_len);
+void ines_free(ines_t *ines);
 
-#define COPY_DATA(dst_p, size)            \
+int32_t ines_init(ines_t *ines, uint8_t *data, uint32_t data_len);
+
+#define COPY_DATA(dst, size)              \
     do                                    \
     {                                     \
-        if (data_p + size < data_end_p)   \
+        if (data + size < data_end)       \
         {                                 \
             return EINVALID_INES_CONTENT; \
         }                                 \
-        dst_p = malloc(size);             \
-        memcpy(dst_p, data_p, size);      \
-        data_p += size;                   \
-    } while (0);
+        dst = malloc(size);               \
+        memcpy(dst, data, size);          \
+        data += size;                     \
+    } while (0)
 
 #endif //WASM_NES_INES_H
