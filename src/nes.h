@@ -6,12 +6,19 @@
 #define WASM_NES_NES_H
 
 #include "port.h"
-#include "ines.h"
+#include "cartridge.h"
+#include "mmc.h"
 
-ines_t ines = {0};
+typedef struct
+{
+    cartridge_t *cart;
+    mmc_t *mmc;
+} nes_t;
+
+nes_t g_nes;
 
 // int32_t nes_init();
-int32_t nes_load(uint8_t *data_p, uint32_t data_len);
+int32_t nes_load(uint8_t *data, uint32_t data_len);
 void nes_free();
 // int32_t nes_reset();
 

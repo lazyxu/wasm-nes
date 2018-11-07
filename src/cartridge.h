@@ -2,8 +2,8 @@
 // Created by meteor on 2018/11/4.
 //
 
-#ifndef WASM_NES_INES_H
-#define WASM_NES_INES_H
+#ifndef WASM_NES_CARTRIDGE_H
+#define WASM_NES_CARTRIDGE_H
 
 #include "port.h"
 
@@ -28,16 +28,16 @@ typedef struct
 typedef struct
 {
     uint8_t *trainer;
+    uint8_t mapper_no;
     uint8_t num_prg; // number of PRG-ROM banks (16KB each)
     uint8_t *prg_rom;
     uint8_t num_chr; // number of CHR-ROM banks (8KB each)
     uint8_t *chr_rom;
     uint8_t *chr_ram;
-} ines_t;
+} cartridge_t;
 
-void ines_free(ines_t *ines);
-
-int32_t ines_init(ines_t *ines, uint8_t *data, uint32_t data_len);
+int32_t cartridge_load(cartridge_t *cart, uint8_t *data, uint32_t data_len);
+void cartridge_free(cartridge_t *cart);
 
 #define COPY_DATA(dst, size)              \
     do                                    \
@@ -51,4 +51,4 @@ int32_t ines_init(ines_t *ines, uint8_t *data, uint32_t data_len);
         data += size;                     \
     } while (0)
 
-#endif //WASM_NES_INES_H
+#endif //WASM_NES_CARTRIDGE_H

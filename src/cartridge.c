@@ -2,25 +2,16 @@
 // Created by meteor on 2018/11/4.
 //
 
-#include "ines.h"
+#include "cartridge.h"
 #include "mirror.h"
 
-void ines_free(ines_t *ines)
+int32_t cartridge_load(cartridge_t *cart, uint8_t *data, uint32_t data_len)
 {
-    ASSERT(ines != NULL);
-    FREE(ines->trainer);
-    FREE(ines->prg_rom);
-    FREE(ines->chr_rom);
-    FREE(ines->chr_ram);
-}
-
-int32_t ines_init(ines_t *ines, uint8_t *data, uint32_t data_len)
-{
-    ASSERT(ines != NULL);
-    ASSERT(ines->trainer == NULL);
-    ASSERT(ines->prg_rom == NULL);
-    ASSERT(ines->chr_rom == NULL);
-    ASSERT(ines->chr_ram == NULL);
+    ASSERT(cart != NULL);
+    ASSERT(cart->trainer == NULL);
+    ASSERT(cart->prg_rom == NULL);
+    ASSERT(cart->chr_rom == NULL);
+    ASSERT(cart->chr_ram == NULL);
     if (data == NULL || data_len == 0)
     {
         return EINVALID_ARGUMENT;
@@ -58,7 +49,7 @@ int32_t ines_init(ines_t *ines, uint8_t *data, uint32_t data_len)
     // ROM Control Byte 2:
     // • Bits 0-3 - Reserved for future usage and should all be 0.
     // • Bits 4-7 - Four upper bits of the mapper number.
-    uint8_t mapper = (header->control_2 & 0xf0) | (header->control_1 >> 4);
+    cart->mapper_no = (header->control_2 & 0xf0) | (header->control_1 >> 4);
     mirror = ((header->control_1 >> 3) & 1) ? FOURSCREEN_MIRRORING : (header->control_1 & 1);
 
     // battery-backed RAM
@@ -69,21 +60,21 @@ int32_t ines_init(ines_t *ines, uint8_t *data, uint32_t data_len)
     // otherwise the ROM banks begin here, starting with PRG-ROM then CHR-ROM.
     if ((header->control_1 & 0b100) == 0b100)
     {
-        COPY_DATA(ines->trainer, TRAINER_SIZE);
+        COPY_DATA(cart->trainer, TRAINER_SIZE);
     }
 
     // Load PRG-ROM banks:
-    COPY_DATA(ines->prg_rom, header->num_prg * PRG_ROM_SIZE);
+    COPY_DATA(cart->prg_rom, header->num_prg * PRG_ROM_SIZE);
     if (header->num_chr != 0)
     {
         // Load CHR-ROM banks:
-        COPY_DATA(ines->chr_rom, header->num_chr * CHR_ROM_SIZE);
+        COPY_DATA(cart->chr_rom, header->num_chr * CHR_ROM_SIZE);
     }
     else
     {
         // Provide CHR-ROM and CHR-RAM if not in the rom:
-        ines->chr_rom = malloc(CHR_ROM_SIZE);
-        ines->chr_ram = malloc(CHR_RAM_SIZE);
+        cart->chr_rom = malloc(CHR_ROM_SIZE);
+        cart->chr_ram = malloc(CHR_RAM_SIZE);
     }
 
     // Check if the contents of rom have been completely read.
@@ -94,4 +85,13 @@ int32_t ines_init(ines_t *ines, uint8_t *data, uint32_t data_len)
     }
 
     return EOK;
+}
+
+void cartridge_free(cartridge_t *cart)
+{
+    ASSERT(cart != NULL);
+    FREE(cart->trainer);
+    FREE(cart->prg_rom);
+    FREE(cart->chr_rom);
+    FREE(cart->chr_ram);
 }
