@@ -11,13 +11,12 @@
 
 typedef struct
 {
-    uint32_t magic;     // iNES magic number
-    uint8_t num_prg;    // number of PRG-ROM banks (16KB each)
-    uint8_t num_chr;    // number of CHR-ROM banks (8KB each)
-    uint8_t control_1;  // control bits
-    uint8_t control_2;  // control bits
-    uint8_t num_ram;    // PRG-RAM size (x 8KB)
-    uint8_t padding[7]; // unused padding
+    uint32_t magic;           // iNES magic number
+    uint8_t num_prg_rom_bank; // number of PRG-ROM banks (16KB each)
+    uint8_t num_chr_rom_bank; // number of CHR-ROM banks (8KB each)
+    uint8_t control_1;        // control bits
+    uint8_t control_2;        // control bits
+    uint8_t padding[8];       // unused padding
 } ines_header_t;
 
 #define TRAINER_SIZE 0x200
@@ -29,9 +28,9 @@ typedef struct
 {
     uint8_t *trainer;
     uint8_t mapper_no;
-    uint8_t num_prg; // number of PRG-ROM banks (16KB each)
+    uint8_t num_prg_rom_bank; // number of PRG-ROM banks (16KB each)
     uint8_t *prg_rom;
-    uint8_t num_chr; // number of CHR-ROM banks (8KB each)
+    uint8_t num_chr_rom_bank; // number of CHR-ROM banks (8KB each)
     uint8_t *chr_rom;
     uint8_t *chr_ram;
 } cartridge_t;

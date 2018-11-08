@@ -8,11 +8,15 @@
 #include "port.h"
 #include "cartridge.h"
 #include "mmc.h"
+#include "cpu.h"
+#include "ppu.h"
 
 typedef struct
 {
     cartridge_t *cart;
     mmc_t *mmc;
+    cpu_t *cpu;
+    ppu_t *ppu;
 } nes_t;
 
 nes_t g_nes;

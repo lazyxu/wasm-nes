@@ -64,11 +64,11 @@ int32_t cartridge_load(cartridge_t *cart, uint8_t *data, uint32_t data_len)
     }
 
     // Load PRG-ROM banks:
-    COPY_DATA(cart->prg_rom, header->num_prg * PRG_ROM_SIZE);
-    if (header->num_chr != 0)
+    COPY_DATA(cart->prg_rom, header->num_prg_rom_bank * PRG_ROM_SIZE);
+    if (header->num_chr_rom_bank != 0)
     {
         // Load CHR-ROM banks:
-        COPY_DATA(cart->chr_rom, header->num_chr * CHR_ROM_SIZE);
+        COPY_DATA(cart->chr_rom, header->num_chr_rom_bank * CHR_ROM_SIZE);
     }
     else
     {

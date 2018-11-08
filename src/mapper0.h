@@ -2,12 +2,12 @@
 // Created by meteor on 2018/11/8.
 //
 
-#ifndef WASM_NES_MAPPER1_H
-#define WASM_NES_MAPPER1_H
+#ifndef WASM_NES_MAPPER0_H
+#define WASM_NES_MAPPER0_H
 
 #include "mmc.h"
 
-mapper_t m1 = {
+mapper_t m0 = {
     mapper_init,
     mapper_free,
     NULL,
@@ -16,4 +16,4 @@ mapper_t m1 = {
     NULL,
 };
 
-#endif //WASM_NES_MAPPER1_H
+#endif //WASM_NES_MAPPER0_H
