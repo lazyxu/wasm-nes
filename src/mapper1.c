@@ -6,7 +6,7 @@
 
 void mapper_init(mmc_t *mmc)
 {
-    LOG("mapper_1 init\n");
+    DEBUG_MSG("mapper_1 init\n");
     // mmc->prg_rom_bank_size = mmc->cart->num_prg_rom_bank;
     // mmc->prg_rom_bank_c000 = mmc->prg_rom_bank_size - 1;
     // mmc->prg_rom_bank_8000 = 0;
@@ -16,7 +16,7 @@ void mapper_init(mmc_t *mmc)
 
 void mapper_free()
 {
-    LOG("mapper_1 free\n");
+    DEBUG_MSG("mapper_1 free\n");
 }
 
 uint8_t cpu_read(uint16_t addr)

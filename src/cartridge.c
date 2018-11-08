@@ -80,7 +80,7 @@ int32_t cartridge_load(cartridge_t *cart, uint8_t *data, uint32_t data_len)
     // Check if the contents of rom have been completely read.
     if (data != data_end)
     {
-        LOG("%X %X\n", (uint32_t)data, (uint32_t)data_end);
+        DEBUG_MSG("%X %X\n", (uint32_t)data, (uint32_t)data_end);
         return EINVALID_INES_CONTENT;
     }
 

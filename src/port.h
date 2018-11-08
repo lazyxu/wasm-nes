@@ -25,45 +25,56 @@
         ptr = NULL; \
     } while (0)
 
+#ifdef TRACE
+#ifndef DEBUG
+#define DEBUG
+#endif //!DEBUG
+#endif //TRACE
+
 #ifdef DEBUG
 
 #include <stdio.h>
 
-#define LOG printf
-
-#define ASSERT(test)                                                                          \
-    if (!(test))                                                                              \
-    {                                                                                         \
-        LOG("Assertion failed: " #test ", at: %s,%d,%s\n", __FILE__, __LINE__, __FUNCTION__); \
-        abort();                                                                              \
+#define ASSERT(test)                                                                             \
+    if (!(test))                                                                                 \
+    {                                                                                            \
+        printf("Assertion failed: " #test ", at: %s,%d,%s\n", __FILE__, __LINE__, __FUNCTION__); \
+        abort();                                                                                 \
     }
 
-#define HEX_DUMP(data, data_len)                                            \
-    do                                                                      \
-    {                                                                       \
-        LOG("  Length: %u\n", data_len);                                    \
-        LOG("  Offset: 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n"); \
-        for (uint32_t i = 0; i < data_len; i++)                             \
-        {                                                                   \
-            if ((i & 0xF) == 0)                                             \
-            {                                                               \
-                LOG("%08X: ", i);                                           \
-            }                                                               \
-            LOG("%02X", (uint8_t)(*(data + i)));                            \
-            if (((i + 1) & 0xF) == 0)                                       \
-            {                                                               \
-                LOG("\n");                                                  \
-            }                                                               \
-            else                                                            \
-            {                                                               \
-                LOG(" ");                                                   \
-            }                                                               \
-        }                                                                   \
-        LOG("\n");                                                          \
-    } while (0)
-#else
+#define DEBUG_MSG printf
 
-#define LOG(...)
+#ifdef TRACE
+#define TRACE_MSG printf
+#define HEX_DUMP(data, data_len)                                               \
+    do                                                                         \
+    {                                                                          \
+        printf("  Length: %u\n", data_len);                                    \
+        printf("  Offset: 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n"); \
+        for (uint32_t i = 0; i < data_len; i++)                                \
+        {                                                                      \
+            if ((i & 0xF) == 0)                                                \
+            {                                                                  \
+                printf("%08X: ", i);                                           \
+            }                                                                  \
+            printf("%02X", (uint8_t)(*(data + i)));                            \
+            if (((i + 1) & 0xF) == 0)                                          \
+            {                                                                  \
+                printf("\n");                                                  \
+            }                                                                  \
+            else                                                               \
+            {                                                                  \
+                printf(" ");                                                   \
+            }                                                                  \
+        }                                                                      \
+        printf("\n");                                                          \
+    } while (0)
+#else //!TRACE
+#define TRACE_MSG(...)
+#define HEX_DUMP(...)
+#endif //TRACE
+
+#else //!DEBUG
 #define ASSERT(...)
 #define HEX_DUMP(...)
 

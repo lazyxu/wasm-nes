@@ -22,13 +22,13 @@ void mmc_init(mmc_t *mmc, cartridge_t *cart, cpu_t *cpu, ppu_t *ppu)
     mmc->ppu = ppu;
     mmc->cart = cart;
     mmc->mapper = g_mapper_list[cart->mapper_no];
-    LOG("using mapper: %u\n", cart->mapper_no);
+    TRACE_MSG("using mapper: %u\n", cart->mapper_no);
     ASSERT(mmc->mapper != NULL);
-    LOG("mmc->mapper: %u\n", (uint8_t)mmc->mapper);
+    TRACE_MSG("mmc->mapper: %u\n", (uint8_t)mmc->mapper);
     ASSERT(mmc->mapper->mapper_init != NULL);
-    LOG("mmc->mapper->mapper_init: %u\n", (uint8_t)mmc->mapper->mapper_init);
+    TRACE_MSG("mmc->mapper->mapper_init: %u\n", (uint8_t)mmc->mapper->mapper_init);
     mmc->mapper->mapper_init(mmc);
-    LOG("mapper_init done\n");
+    DEBUG_MSG("mapper_init done\n");
 }
 
 void mmc_free(mmc_t *mmc)
