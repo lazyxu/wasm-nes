@@ -19,20 +19,20 @@ void mapper_free()
     DEBUG_MSG("mapper_0 free\n");
 }
 
-uint8_t cpu_read(uint16_t addr)
+uint8_t cpu_read(mmc_t *mmc, uint16_t addr)
 {
     return 0;
 }
 
-void cpu_write(uint16_t addr, uint8_t value)
+void cpu_write(mmc_t *mmc, uint16_t addr, uint8_t value)
 {
 }
 
-uint8_t ppu_read(uint16_t addr)
+uint8_t ppu_read(mmc_t *mmc, uint16_t addr)
 {
     return 0;
 }
 
-void ppu_write(uint16_t addr, uint8_t value)
+void ppu_write(mmc_t *mmc, uint16_t addr, uint8_t value)
 {
 }

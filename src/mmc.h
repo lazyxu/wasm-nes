@@ -43,9 +43,9 @@ void mmc_free(mmc_t *mmc);
 
 static void mapper_init(mmc_t *mmc);
 static void mapper_free();
-static uint8_t cpu_read(uint16_t addr);
-static void cpu_write(uint16_t addr, uint8_t value);
-static uint8_t ppu_read(uint16_t addr);
-static void ppu_write(uint16_t addr, uint8_t value);
+static uint8_t cpu_read(mmc_t *mmc, uint16_t addr);
+static void cpu_write(mmc_t *mmc, uint16_t addr, uint8_t value);
+static uint8_t ppu_read(mmc_t *mmc, uint16_t addr);
+static void ppu_write(mmc_t *mmc, uint16_t addr, uint8_t value);
 
 #endif //WASM_NES_MMC_H
