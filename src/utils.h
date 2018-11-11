@@ -7,4 +7,4 @@
 
 #include "port.h"
 
-#endif //WASM_NES_UTILS_H
+#endif // WASM_NES_UTILS_H

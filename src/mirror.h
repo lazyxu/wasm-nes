@@ -5,8 +5,7 @@
 #ifndef WASM_NES_MIRROR_H
 #define WASM_NES_MIRROR_H
 
-typedef enum
-{
+typedef enum {
     HORIZONTAL_MIRRORING,
     VERTICAL_MIRRORING,
     FOURSCREEN_MIRRORING,
@@ -15,4 +14,4 @@ typedef enum
 
 mirror_t mirror = INVALID_MIRROTING;
 
-#endif //WASM_NES_MIRROR_H
+#endif // WASM_NES_MIRROR_H

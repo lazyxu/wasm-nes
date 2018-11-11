@@ -5,8 +5,7 @@
 #ifndef WASM_NES_APU_H
 #define WASM_NES_APU_H
 
-typedef struct
-{
+typedef struct {
 } apu_t;
 
-#endif //WASM_NES_APU_H
+#endif // WASM_NES_APU_H

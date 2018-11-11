@@ -4,8 +4,7 @@
 
 #include "mapper1.h"
 
-void mapper_init(mmc_t *mmc)
-{
+void mapper_init(mmc_t *mmc) {
     DEBUG_MSG("mapper_1 init\n");
     // mmc->prg_rom_bank_size = mmc->cart->num_prg_rom_bank;
     // mmc->prg_rom_bank_c000 = mmc->prg_rom_bank_size - 1;
@@ -14,25 +13,12 @@ void mapper_init(mmc_t *mmc)
     // mmc->chr_rom_bank_0000 = 0;
 }
 
-void mapper_free()
-{
-    DEBUG_MSG("mapper_1 free\n");
-}
+void mapper_free() { DEBUG_MSG("mapper_1 free\n"); }
 
-uint8_t cpu_read(mmc_t *mmc, uint16_t addr)
-{
-    return 0;
-}
+uint8_t cpu_read(mmc_t *mmc, uint16_t addr) { return 0; }
 
-void cpu_write(mmc_t *mmc, uint16_t addr, uint8_t value)
-{
-}
+void cpu_write(mmc_t *mmc, uint16_t addr, uint8_t value) {}
 
-uint8_t ppu_read(mmc_t *mmc, uint16_t addr)
-{
-    return 0;
-}
+uint8_t ppu_read(mmc_t *mmc, uint16_t addr) { return 0; }
 
-void ppu_write(mmc_t *mmc, uint16_t addr, uint8_t value)
-{
-}
+void ppu_write(mmc_t *mmc, uint16_t addr, uint8_t value) {}

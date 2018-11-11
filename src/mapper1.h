@@ -8,12 +8,7 @@
 #include "mmc.h"
 
 mapper_t m1 = {
-    mapper_init,
-    mapper_free,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
+    mapper_init, mapper_free, NULL, NULL, NULL, NULL,
 };
 
-#endif //WASM_NES_MAPPER1_H
+#endif // WASM_NES_MAPPER1_H

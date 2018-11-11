@@ -5,8 +5,7 @@
 #ifndef WASM_NES_PPU_H
 #define WASM_NES_PPU_H
 
-typedef struct
-{
+typedef struct {
 } ppu_t;
 
-#endif //WASM_NES_PPU_H
+#endif // WASM_NES_PPU_H

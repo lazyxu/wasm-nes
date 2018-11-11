@@ -9,15 +9,13 @@ extern mapper_t m1;
 extern mapper_t m2;
 
 // mapper list
-static mapper_t *g_mapper_list[256] =
-    {
-        NULL,
-        &m1,
-        &m2,
+static mapper_t *g_mapper_list[256] = {
+    NULL,
+    &m1,
+    &m2,
 };
 
-void mmc_init(mmc_t *mmc, cartridge_t *cart, cpu_t *cpu, ppu_t *ppu)
-{
+void mmc_init(mmc_t *mmc, cartridge_t *cart, cpu_t *cpu, ppu_t *ppu) {
     DEBUG_MSG("mmc_init\n");
     mmc->cpu = cpu;
     mmc->ppu = ppu;
@@ -28,7 +26,8 @@ void mmc_init(mmc_t *mmc, cartridge_t *cart, cpu_t *cpu, ppu_t *ppu)
     TRACE_MSG("mmc->mapper: %u\n", (uint8_t)mmc->mapper);
 
     ASSERT(mmc->mapper->mapper_init != NULL);
-    TRACE_MSG("mmc->mapper->mapper_init: %u\n", (uint8_t)mmc->mapper->mapper_init);
+    TRACE_MSG("mmc->mapper->mapper_init: %u\n",
+              (uint8_t)mmc->mapper->mapper_init);
 
     mmc->prg_rom_bank_size = mmc->cart->num_prg_rom_bank;
     mmc->prg_rom_bank_c000 = mmc->prg_rom_bank_size - 1;
@@ -42,7 +41,4 @@ void mmc_init(mmc_t *mmc, cartridge_t *cart, cpu_t *cpu, ppu_t *ppu)
     DEBUG_MSG("mmc_init done\n");
 }
 
-void mmc_free(mmc_t *mmc)
-{
-    mmc->mapper->mapper_free();
-}
+void mmc_free(mmc_t *mmc) { mmc->mapper->mapper_free(); }

@@ -5,17 +5,16 @@
 #ifndef WASM_NES_MMC_H
 #define WASM_NES_MMC_H
 
-#include "port.h"
 #include "cartridge.h"
 #include "cpu.h"
-#include "ppu.h"
 #include "mmc.h"
+#include "port.h"
+#include "ppu.h"
 
 typedef struct _mapper_t mapper_t;
 
 // Memory management controller
-typedef struct
-{
+typedef struct {
     cpu_t *cpu;
     ppu_t *ppu;
     cartridge_t *cart;
@@ -28,8 +27,7 @@ typedef struct
     mapper_t *mapper;
 } mmc_t;
 
-struct _mapper_t
-{
+struct _mapper_t {
     void (*mapper_init)();
     void (*mapper_free)();
     uint8_t (*cpu_read)(uint16_t addr);
@@ -48,4 +46,4 @@ static void cpu_write(mmc_t *mmc, uint16_t addr, uint8_t value);
 static uint8_t ppu_read(mmc_t *mmc, uint16_t addr);
 static void ppu_write(mmc_t *mmc, uint16_t addr, uint8_t value);
 
-#endif //WASM_NES_MMC_H
+#endif // WASM_NES_MMC_H

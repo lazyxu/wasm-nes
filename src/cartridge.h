@@ -9,8 +9,7 @@
 
 #define INES_FILE_MAGIC 0x1a53454e
 
-typedef struct
-{
+typedef struct {
     uint32_t magic;           // iNES magic number
     uint8_t num_prg_rom_bank; // number of PRG-ROM banks (16KB each)
     uint8_t num_chr_rom_bank; // number of CHR-ROM banks (8KB each)
@@ -24,8 +23,7 @@ typedef struct
 #define CHR_ROM_SIZE 0x2000
 #define CHR_RAM_SIZE 0x2000
 
-typedef struct
-{
+typedef struct {
     uint8_t *trainer;
     uint8_t mapper_no;
     uint8_t num_prg_rom_bank; // number of PRG-ROM banks (16KB each)
@@ -38,16 +36,14 @@ typedef struct
 int32_t cartridge_load(cartridge_t *cart, uint8_t *data, uint32_t data_len);
 void cartridge_free(cartridge_t *cart);
 
-#define COPY_DATA(dst, size)              \
-    do                                    \
-    {                                     \
-        if (data + size < data_end)       \
-        {                                 \
-            return EINVALID_INES_CONTENT; \
-        }                                 \
-        dst = malloc(size);               \
-        memcpy(dst, data, size);          \
-        data += size;                     \
+#define COPY_DATA(dst, size)                                                   \
+    do {                                                                       \
+        if (data + size < data_end) {                                          \
+            return EINVALID_INES_CONTENT;                                      \
+        }                                                                      \
+        dst = malloc(size);                                                    \
+        memcpy(dst, data, size);                                               \
+        data += size;                                                          \
     } while (0)
 
-#endif //WASM_NES_CARTRIDGE_H
+#endif // WASM_NES_CARTRIDGE_H
