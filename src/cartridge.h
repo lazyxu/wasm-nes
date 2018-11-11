@@ -36,14 +36,14 @@ typedef struct {
 int32_t cartridge_load(cartridge_t *cart, uint8_t *data, uint32_t data_len);
 void cartridge_free(cartridge_t *cart);
 
-#define COPY_DATA(dst, size)                                                   \
-    do {                                                                       \
-        if (data + size < data_end) {                                          \
-            return EINVALID_INES_CONTENT;                                      \
-        }                                                                      \
-        dst = malloc(size);                                                    \
-        memcpy(dst, data, size);                                               \
-        data += size;                                                          \
+#define COPY_DATA(dst, size)                                                                                           \
+    do {                                                                                                               \
+        if (data + size < data_end) {                                                                                  \
+            return EINVALID_INES_CONTENT;                                                                              \
+        }                                                                                                              \
+        dst = malloc(size);                                                                                            \
+        memcpy(dst, data, size);                                                                                       \
+        data += size;                                                                                                  \
     } while (0)
 
 #endif // WASM_NES_CARTRIDGE_H

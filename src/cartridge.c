@@ -47,8 +47,7 @@ int32_t cartridge_load(cartridge_t *cart, uint8_t *data, uint32_t data_len) {
     cart->mapper_no = (header->control_2 & 0xf0) | (header->control_1 >> 4);
     DEBUG_MSG("using mapper: %u\n", cart->mapper_no);
 
-    mirror = ((header->control_1 >> 3) & 1) ? FOURSCREEN_MIRRORING
-                                            : (header->control_1 & 1);
+    mirror = ((header->control_1 >> 3) & 1) ? FOURSCREEN_MIRRORING : (header->control_1 & 1);
 
     // battery-backed RAM
     bool battery = (header->control_1 >> 1) & 1;

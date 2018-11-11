@@ -12,28 +12,24 @@ void mapper_init(mmc_t *mmc) {
 
 void mapper_free() { DEBUG_MSG("mapper_2 free\n"); }
 
-uint8_t cpu_read(mmc_t *mmc, uint16_t addr) {
+uint8_t mapper_cpu_read(mmc_t *mmc, uint16_t addr) {
     if (addr >= 0xc000) {
-        return mmc->cart
-            ->prg_rom[mmc->prg_rom_bank_c000 * 0x4000 + addr - 0xc000];
+        return mmc->cart->prg_rom[mmc->prg_rom_bank_c000 * 0x4000 + addr - 0xc000];
     } else if (addr >= 0x8000) {
-        return mmc->cart
-            ->prg_rom[mmc->prg_rom_bank_8000 * 0x4000 + addr - 0x8000];
+        return mmc->cart->prg_rom[mmc->prg_rom_bank_8000 * 0x4000 + addr - 0x8000];
     }
     ASSERT(false);
 }
 
-void cpu_write(mmc_t *mmc, uint16_t addr, uint8_t value) {
+void mapper_cpu_write(mmc_t *mmc, uint16_t addr, uint8_t val) {
     if (addr >= 0xc000) {
-        mmc->cart->prg_rom[mmc->prg_rom_bank_c000 * 0x4000 + addr - 0xc000] =
-            value;
+        mmc->cart->prg_rom[mmc->prg_rom_bank_c000 * 0x4000 + addr - 0xc000] = val;
     } else if (addr >= 0x8000) {
-        mmc->cart->prg_rom[mmc->prg_rom_bank_8000 * 0x4000 + addr - 0x8000] =
-            value;
+        mmc->cart->prg_rom[mmc->prg_rom_bank_8000 * 0x4000 + addr - 0x8000] = val;
     }
 }
 
-uint8_t ppu_read(mmc_t *mmc, uint16_t addr) {
+uint8_t mapper_ppu_read(mmc_t *mmc, uint16_t addr) {
     if (addr < 0x2000) {
         return mmc->cart->chr_rom[addr];
     } else if (addr >= 0x6000) {
@@ -42,10 +38,10 @@ uint8_t ppu_read(mmc_t *mmc, uint16_t addr) {
     ASSERT(false);
 }
 
-void ppu_write(mmc_t *mmc, uint16_t addr, uint8_t value) {
+void mapper_ppu_write(mmc_t *mmc, uint16_t addr, uint8_t val) {
     if (addr < 0x2000) {
-        mmc->cart->chr_rom[addr] = value;
+        mmc->cart->chr_rom[addr] = val;
     } else if (addr >= 0x6000) {
-        mmc->cart->chr_ram[addr - 0x6000] = value;
+        mmc->cart->chr_ram[addr - 0x6000] = val;
     }
 }

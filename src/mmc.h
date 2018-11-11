@@ -30,10 +30,10 @@ typedef struct {
 struct _mapper_t {
     void (*mapper_init)();
     void (*mapper_free)();
-    uint8_t (*cpu_read)(uint16_t addr);
-    void (*cpu_write)(uint16_t addr, uint8_t value);
-    uint8_t (*ppu_read)(uint16_t addr);
-    void (*ppu_write)(uint16_t addr, uint8_t value);
+    uint8_t (*mapper_cpu_read)(uint16_t addr);
+    void (*mapper_cpu_write)(uint16_t addr, uint8_t val);
+    uint8_t (*mapper_ppu_read)(uint16_t addr);
+    void (*mapper_ppu_write)(uint16_t addr, uint8_t val);
 };
 
 void mmc_init(mmc_t *mmc, cartridge_t *cart, cpu_t *cpu, ppu_t *ppu);
@@ -41,9 +41,9 @@ void mmc_free(mmc_t *mmc);
 
 static void mapper_init(mmc_t *mmc);
 static void mapper_free();
-static uint8_t cpu_read(mmc_t *mmc, uint16_t addr);
-static void cpu_write(mmc_t *mmc, uint16_t addr, uint8_t value);
-static uint8_t ppu_read(mmc_t *mmc, uint16_t addr);
-static void ppu_write(mmc_t *mmc, uint16_t addr, uint8_t value);
+static uint8_t mapper_cpu_read(mmc_t *mmc, uint16_t addr);
+static void mapper_cpu_write(mmc_t *mmc, uint16_t addr, uint8_t val);
+static uint8_t mapper_ppu_read(mmc_t *mmc, uint16_t addr);
+static void mapper_ppu_write(mmc_t *mmc, uint16_t addr, uint8_t val);
 
 #endif // WASM_NES_MMC_H
