@@ -17,6 +17,7 @@ static mapper_t *g_mapper_list[256] = {
 
 void mmc_init(mmc_t *mmc, cartridge_t *cart, cpu_t *cpu, ppu_t *ppu) {
     DEBUG_MSG("mmc_init\n");
+    ASSERT(mmc != NULL);
     mmc->cpu = cpu;
     mmc->ppu = ppu;
     mmc->cart = cart;
@@ -26,8 +27,7 @@ void mmc_init(mmc_t *mmc, cartridge_t *cart, cpu_t *cpu, ppu_t *ppu) {
     TRACE_MSG("mmc->mapper: %u\n", (uint8_t)mmc->mapper);
 
     ASSERT(mmc->mapper->mapper_init != NULL);
-    TRACE_MSG("mmc->mapper->mapper_init: %u\n",
-              (uint8_t)mmc->mapper->mapper_init);
+    TRACE_MSG("mmc->mapper->mapper_init: %u\n", (uint8_t)mmc->mapper->mapper_init);
 
     mmc->prg_rom_bank_size = mmc->cart->num_prg_rom_bank;
     mmc->prg_rom_bank_c000 = mmc->prg_rom_bank_size - 1;

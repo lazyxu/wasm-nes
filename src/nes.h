@@ -13,7 +13,7 @@
 #include "port.h"
 #include "ppu.h"
 
-typedef struct {
+typedef struct _nes_t {
     cartridge_t *cart;
     mmc_t *mmc;
     cpu_t *cpu;

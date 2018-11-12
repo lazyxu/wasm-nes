@@ -13,6 +13,7 @@ nes_t *new_nes() {
     nes->ppu->nes = nes;
     nes->apu = malloc(sizeof(cpu_t));
     nes->apu->nes = nes;
+    nes->mmc = malloc(sizeof(mmc_t));
     return nes;
 }
 
@@ -27,6 +28,7 @@ int32_t nes_load(uint8_t *data, uint32_t data_len) {
         return ret;
     }
     mmc_init(nes->mmc, nes->cart, nes->cpu, nes->ppu);
+    cpu_reset(nes->cpu);
     return ret;
 }
 

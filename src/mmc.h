@@ -30,10 +30,10 @@ typedef struct {
 struct _mapper_t {
     void (*mapper_init)();
     void (*mapper_free)();
-    uint8_t (*mapper_cpu_read)(uint16_t addr);
-    void (*mapper_cpu_write)(uint16_t addr, uint8_t val);
-    uint8_t (*mapper_ppu_read)(uint16_t addr);
-    void (*mapper_ppu_write)(uint16_t addr, uint8_t val);
+    uint8_t (*mapper_cpu_read)(mmc_t *mmc, uint16_t addr);
+    void (*mapper_cpu_write)(mmc_t *mmc, uint16_t addr, uint8_t val);
+    uint8_t (*mapper_ppu_read)(mmc_t *mmc, uint16_t addr);
+    void (*mapper_ppu_write)(mmc_t *mmc, uint16_t addr, uint8_t val);
 };
 
 void mmc_init(mmc_t *mmc, cartridge_t *cart, cpu_t *cpu, ppu_t *ppu);

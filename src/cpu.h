@@ -5,7 +5,6 @@
 #ifndef WASM_NES_CPU_H
 #define WASM_NES_CPU_H
 
-#include "bus.h"
 #include "port.h"
 
 typedef enum {
@@ -110,26 +109,22 @@ typedef enum {
 } instruction_t;
 
 typedef struct {
-    void *nes;
+    struct _nes_t *nes;
     uint16_t pc;
     uint8_t sp;
     uint8_t a;
     uint8_t x;
     uint8_t y;
-    uint8_t p; // Processor Status
+    uint8_t ps;
     uint8_t ram[0x800];
     interrupt_t interrupt;
     addressing_mode_t addressing_mode;
+    uint16_t cycles;
 } cpu_t;
 
 void cpu_reset(cpu_t *cpu);
 
-static uint16_t cpu_read16(cpu_t *cpu, uint16_t addr);
-static uint16_t cpu_read16bug(cpu_t *cpu, uint16_t addr);
-
-static void push(cpu_t *cpu, uint8_t val);
-static uint8_t pull(cpu_t *cpu);
-static void push16(cpu_t *cpu, uint16_t val);
-static uint16_t pull16(cpu_t *cpu);
+uint8_t cpu_read(struct _nes_t *_nes, uint16_t addr);
+void cpu_write(struct _nes_t *_nes, uint16_t addr, uint8_t val);
 
 #endif // WASM_NES_CPU_H
