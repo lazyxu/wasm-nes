@@ -7,7 +7,10 @@
 #include "nes.h"
 #include "ppu.h"
 
-const instruction_t g_opcode_list[] = {
+/**
+ * the opcode for each instruction
+ */
+const opcode_t g_opcode_list[] = {
     BRK, ORA, KIL, SLO, NOP, ORA, ASL, SLO, PHP, ORA, ASL, ANC, NOP, ORA, ASL, SLO, BPL, ORA, KIL, SLO, NOP, ORA,
     ASL, SLO, CLC, ORA, NOP, SLO, NOP, ORA, ASL, SLO, JSR, AND, KIL, RLA, BIT, AND, ROL, RLA, PLP, AND, ROL, ANC,
     BIT, AND, ROL, RLA, BMI, AND, KIL, RLA, NOP, AND, ROL, RLA, SEC, AND, NOP, RLA, NOP, AND, ROL, RLA, RTI, EOR,
@@ -75,15 +78,6 @@ const uint8_t g_page_cycle[] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0,
 };
 
-#define C_FLAG (1 << 0)
-#define Z_FLAG (1 << 1)
-#define I_FLAG (1 << 2)
-#define D_FLAG (1 << 3)
-#define B_FLAG (1 << 4)
-#define R_FLAG (1 << 5)
-#define O_FLAG (1 << 6)
-#define N_FLAG (1 << 7)
-
 #define PC (cpu->pc)
 #define SP (cpu->sp)
 #define A (cpu->a)
@@ -94,6 +88,29 @@ const uint8_t g_page_cycle[] = {
 #define CYCLES (cpu->cycles)
 
 /* ---------------------------------------------------- register ---------------------------------------------------- */
+
+#define C_FLAG (1 << 0)
+#define Z_FLAG (1 << 1)
+#define I_FLAG (1 << 2)
+#define D_FLAG (1 << 3)
+#define B_FLAG (1 << 4)
+#define R_FLAG (1 << 5)
+#define U_FLAG R_FLAG
+#define O_FLAG (1 << 6)
+#define V_FLAG O_FLAG
+#define N_FLAG (1 << 7)
+
+#define C ((PS >> 0) & 1)
+#define Z ((PS >> 1) & 1)
+#define I ((PS >> 2) & 1)
+#define D ((PS >> 3) & 1)
+#define B ((PS >> 4) & 1)
+#define R ((PS >> 5) & 1)
+#define U R
+#define O ((PS >> 6) & 1)
+#define V O
+#define N ((PS >> 7) & 1)
+
 #define SET_FLAG(v)                                                                                                    \
     do {                                                                                                               \
         PS |= (v);                                                                                                     \
@@ -114,9 +131,9 @@ const uint8_t g_page_cycle[] = {
 /**
  * set the zero flag if the argument is zero
  */
-#define set_Z_FLAG_IF_ZERO(v)                                                                                          \
+#define SET_Z_FLAG_IF_ZERO(v)                                                                                          \
     do {                                                                                                               \
-        if (v == 0)                                                                                                    \
+        if ((v) == 0)                                                                                                  \
             SET_FLAG(Z_FLAG);                                                                                          \
         else                                                                                                           \
             CLR_FLAG(Z_FLAG);                                                                                          \
@@ -125,7 +142,7 @@ const uint8_t g_page_cycle[] = {
 /**
  * set the negative flag if the argument is negative (high bit is set)
  */
-#define set_N_FLAG_IF_NEGATIVE(v)                                                                                      \
+#define SET_N_FLAG_IF_NEGATIVE(v)                                                                                      \
     do {                                                                                                               \
         if ((v & N_FLAG) != 0)                                                                                         \
             SET_FLAG(N_FLAG);                                                                                          \
@@ -149,7 +166,7 @@ const uint8_t g_page_cycle[] = {
 #define STACK_TOP 0x100
 
 uint8_t cpu_read(nes_t *nes, uint16_t addr) {
-    DEBUG_MSG("cpu read: %x\n", addr);
+    TRACE_MSG("cpu read: %x\n", addr);
     ASSERT(nes != NULL);
     ASSERT(nes->ppu != NULL);
     ASSERT(nes->apu != NULL);
@@ -186,7 +203,7 @@ uint8_t cpu_read(nes_t *nes, uint16_t addr) {
 }
 
 void cpu_write(nes_t *nes, uint16_t addr, uint8_t val) {
-    DEBUG_MSG("cpu write: %x <- %x\n", addr, val);
+    TRACE_MSG("cpu write: %x <- %x\n", addr, val);
     ASSERT(nes != NULL);
     ASSERT(nes->ppu != NULL);
     ASSERT(nes->apu != NULL);
@@ -250,9 +267,9 @@ static uint16_t pop16(cpu_t *cpu) {
     return (hi << 8) | lo;
 }
 #define PUSH(v) push(cpu, v)
-#define POP(v) pop(cpu, v)
+#define POP() pop(cpu)
 #define PUSHW(v) push16(cpu, v)
-#define POPW(v) pop16(cpu, v)
+#define POPW() pop16(cpu)
 
 #define READ(addr) cpu_read(cpu->nes, addr)
 #define READW(addr) cpu_read16(cpu, addr)
@@ -323,27 +340,27 @@ void cpu_irq(cpu_t *cpu) {
  * writing to a memory-mapped I/O device. In the case of the NES, the /NMI line is connected to the NES PPU and is used
  * to detect vertical blanking.
  */
-#define NMI                                                                                                            \
+#define NMI()                                                                                                          \
     do {                                                                                                               \
-        INTERPRETER();                                                                                                 \
+        INTERRUPT();                                                                                                   \
         PC = READW(NMI_VECTOR);                                                                                        \
     } while (0)
 
 /**
  * RESET - RESET Interrupt
  */
-#define RESET                                                                                                          \
+#define RESET()                                                                                                        \
     do {                                                                                                               \
-        INTERPRETER();                                                                                                 \
+        INTERRUPT();                                                                                                   \
         PC = READW(RST_VECTOR);                                                                                        \
     } while (0)
 
 /**
  *  IRQ - IRQ Interrupt
  */
-#define IRQ                                                                                                            \
+#define IRQ()                                                                                                          \
     do {                                                                                                               \
-        INTERPRETER();                                                                                                 \
+        INTERRUPT();                                                                                                   \
         PC = READW(IRQ_VECTOR);                                                                                        \
     } while (0)
 
@@ -360,5 +377,594 @@ void cpu_reset(cpu_t *cpu) {
     PS = 0x24;
     ASSERT(RAM != NULL);
     memset(RAM, 0, sizeof(RAM));
-    cpu->interrupt = INT_NONE;
+    SET_IRQ(INT_NONE);
+}
+
+uint8_t cpu_step(cpu_t *cpu) {
+    if (cpu->stall > 0) {
+        cpu->stall--;
+        return 1;
+    }
+    uint16_t cycles = CYCLES;
+
+    // interrupt
+    switch (cpu->interrupt) {
+    case INT_IRQ:
+        IRQ();
+        break;
+    case INT_NMI:
+        NMI();
+        break;
+    default:
+        break;
+    }
+    SET_IRQ(INT_NONE);
+    uint8_t instruction = READ(PC);
+
+    addressing_mode_t mode = g_mode[instruction];
+
+    // addressing mode
+    uint16_t address;
+    bool page_crossed;
+    uint8_t offset;
+    switch (mode) {
+    case MODE_ABSOLUTE:
+        address = READW(PC + 1);
+        break;
+    case MODE_ABSOLUTE_X:
+        address = READW(PC + 1) + X;
+        page_crossed = PAGE_DIFF(address - X, address);
+        break;
+    case MODE_ABSOLUTE_Y:
+        address = READW(PC + 1) + Y;
+        page_crossed = PAGE_DIFF(address - Y, address);
+        break;
+    case MODE_ACCUMULATOR:
+        address = 0;
+        break;
+    case MODE_IMMEDIATE:
+        address = PC + 1;
+        break;
+    case MODE_IMPLIED:
+        address = 0;
+        break;
+    case MODE_INDEXED_INDIRECT:
+        address = READW(READ(PC + 1) + X);
+        break;
+    case MODE_INDIRECT:
+        address = READW(READ(PC + 1));
+        break;
+    case MODE_INDIRECT_INDEXED:
+        address = READW(READ(PC + 1)) + Y;
+        page_crossed = PAGE_DIFF(address - Y, address);
+        break;
+    case MODE_RELATIVE:
+        offset = READ(PC + 1);
+        address = offset < 0x80 ? PC + 2 + offset : PC + 2 + offset - 0x100;
+        break;
+    case MODE_ZERO_PAGE:
+        address = READ(PC + 1);
+        break;
+    case MODE_ZERO_PAGE_X:
+        address = READ(PC + 1) + X;
+        break;
+    case MODE_ZERO_PAGE_Y:
+        address = READ(PC + 1) + Y;
+        break;
+    }
+    if (page_crossed) {
+        CYCLES += g_page_cycle[instruction];
+    }
+
+    // instructions
+    PC += g_size[instruction];
+    CYCLES += g_cycle[instruction];
+    uint16_t pc = PC;
+    uint8_t value, a, b, c;
+    switch (g_opcode_list[instruction]) {
+    case ADC: // Add with Carry
+        a = A;
+        b = READ(address);
+        c = C;
+        A = a + b + c;
+        SET_ZN_FLAG(A);
+        if (((uint16_t)a + (uint16_t)b + (uint16_t)c) > 0xFF) {
+            SET_FLAG(C_FLAG);
+        } else {
+            CLR_FLAG(C_FLAG);
+        }
+        if (((a ^ b) & 0x80) == 0 && ((a ^ A) & 0x80) != 0) {
+            SET_FLAG(V_FLAG);
+        } else {
+            CLR_FLAG(V_FLAG);
+        }
+    case AHX:
+        ASSERT(false);
+        break;
+    case ALR:
+        ASSERT(false);
+        break;
+    case ANC:
+        ASSERT(false);
+        break;
+    case AND: // Logical AND
+        A = A & READ(address);
+        SET_ZN_FLAG(A);
+        break;
+    case ARR:
+        ASSERT(false);
+        break;
+    case ASL: // Arithmetic Shift Left
+        if (mode == MODE_ACCUMULATOR) {
+            if ((A >> 7) & 1) {
+                SET_FLAG(C_FLAG);
+            } else {
+                CLR_FLAG(C_FLAG);
+            }
+            A <<= 1;
+            SET_ZN_FLAG(A);
+        } else {
+            value = READ(address);
+            if ((value >> 7) & 1) {
+                SET_FLAG(C_FLAG);
+            } else {
+                CLR_FLAG(C_FLAG);
+            }
+            value <<= 1;
+            WRITE(address, value);
+            SET_ZN_FLAG(value);
+        }
+        break;
+    case AXS:
+        ASSERT(false);
+        break;
+    case BCC: // Branch if Carry Clear
+        if (C == 0) {
+            PC = address;
+            ADD_BRANCH_CYCLES(address);
+        }
+        break;
+    case BCS: // Branch if Carry Set
+        if (C == 1) {
+            PC = address;
+            ADD_BRANCH_CYCLES(address);
+        }
+        break;
+    case BEQ: // Branch if Equal
+        if (Z == 1) {
+            PC = address;
+            ADD_BRANCH_CYCLES(address);
+        }
+        break;
+    case BIT: // Bit Test
+        value = READ(address);
+        if ((value >> 6) & 1) {
+            SET_FLAG(V_FLAG);
+        } else {
+            CLR_FLAG(V_FLAG);
+        }
+        SET_Z_FLAG_IF_ZERO(value & A);
+        SET_N_FLAG_IF_NEGATIVE(value);
+        break;
+    case BMI: // Branch if Minus
+        if (N == 1) {
+            PC = address;
+            ADD_BRANCH_CYCLES(address);
+        }
+        break;
+    case BNE: // Branch if Not Equal
+        if (Z == 0) {
+            PC = address;
+            ADD_BRANCH_CYCLES(address);
+        }
+        break;
+    case BPL: // Branch if Positive
+        if (N == 0) {
+            PC = address;
+            ADD_BRANCH_CYCLES(address);
+        }
+        break;
+    case BRK: // Force Interrupt
+        PUSHW(PC);
+        PUSH(PS | 0x10);
+        SET_FLAG(I_FLAG);
+        PC = READW(IRQ_VECTOR);
+        break;
+    case BVC: // Branch if Overflow Clear
+        if (V == 0) {
+            PC = address;
+            ADD_BRANCH_CYCLES(address);
+        }
+        break;
+    case BVS: // Branch if Overflow Set
+        if (V == 1) {
+            PC = address;
+            ADD_BRANCH_CYCLES(address);
+        }
+        break;
+    case CLC: // Clear Carry Flag
+        CLR_FLAG(C_FLAG);
+        break;
+    case CLD: // Clear Decimal Mode
+        CLR_FLAG(D_FLAG);
+        break;
+    case CLI: // Clear Interrupt Disable
+        CLR_FLAG(I_FLAG);
+        break;
+    case CLV: // Clear Overflow Flag
+        CLR_FLAG(V_FLAG);
+        break;
+    case CMP: // Compare
+        value = READ(address);
+        COMPARE(A, value);
+        break;
+    case CPX: // Compare X Register
+        value = READ(address);
+        COMPARE(X, value);
+        break;
+    case CPY: // Compare Y Register
+        value = READ(address);
+        COMPARE(Y, value);
+        break;
+    case DCP: // DEC CMP
+        value = READ(address) - 1;
+        WRITE(address, value);
+        SET_ZN_FLAG(value);
+        COMPARE(A, READ(address));
+        break;
+    case DEC: // Decrement Memory
+        value = READ(address) - 1;
+        WRITE(address, value);
+        SET_ZN_FLAG(value);
+        break;
+    case DEX: // Decrement X Register
+        X -= 1;
+        SET_ZN_FLAG(X);
+        break;
+    case DEY: // Decrement Y Register
+        Y -= 1;
+        SET_ZN_FLAG(Y);
+        break;
+    case EOR: // Exclusive OR
+        A ^= READ(address);
+        SET_ZN_FLAG(A);
+        break;
+    case INC: // Increment Memory
+        value = READ(address) + 1;
+        WRITE(address, value);
+        SET_ZN_FLAG(value);
+        break;
+    case INX: // Increment X Register
+        X += 1;
+        SET_ZN_FLAG(X);
+        break;
+    case INY: // Increment Y Register
+        Y += 1;
+        SET_ZN_FLAG(Y);
+        break;
+    case ISB: // INC SBC
+        value = READ(address) + 1;
+        WRITE(address, value);
+        SET_ZN_FLAG(value);
+        a = A;
+        b = READ(address);
+        c = C;
+        A = a - b - (1 - c);
+        SET_ZN_FLAG(A);
+        if (((int16_t)a - (int16_t)b - (int16_t)(1 - c)) > 0xFF) {
+            SET_FLAG(C_FLAG);
+        } else {
+            CLR_FLAG(C_FLAG);
+        }
+        if (((a ^ b) & 0x80) == 0 && ((a ^ A) & 0x80) != 0) {
+            SET_FLAG(V_FLAG);
+        } else {
+            CLR_FLAG(V_FLAG);
+        }
+        break;
+    case JMP: // Jump
+        PC = address;
+        break;
+    case JSR: // Jump to Subroutine
+        PUSH(PC - 1);
+        PC = address;
+        break;
+    case KIL:
+        ASSERT(false);
+        break;
+    case LAS:
+        ASSERT(false);
+        break;
+    case LAX:
+        value = READ(address);
+        A = value;
+        X = value;
+        SET_ZN_FLAG(value);
+        break;
+    case LDA: // Load Accumulator
+        A = READ(address);
+        SET_ZN_FLAG(A);
+        break;
+    case LDX: // Load X Register
+        X = READ(address);
+        SET_ZN_FLAG(X);
+        break;
+    case LDY: // Load Y Register
+        Y = READ(address);
+        SET_ZN_FLAG(Y);
+        break;
+    case LSR: // Logical Shift Right
+        if (mode == MODE_ACCUMULATOR) {
+            if (A & 1) {
+                SET_FLAG(C_FLAG);
+            } else {
+                CLR_FLAG(C_FLAG);
+            }
+            A >>= 1;
+            SET_ZN_FLAG(A);
+        } else {
+            value = READ(address);
+            if (value & 1) {
+                SET_FLAG(C_FLAG);
+            } else {
+                CLR_FLAG(C_FLAG);
+            }
+            value >>= 1;
+            WRITE(address, value);
+            SET_ZN_FLAG(value);
+        }
+        break;
+    case NOP: // No Operation
+        break;
+    case ORA: // Logical Inclusive OR
+        A |= READ(address);
+        SET_ZN_FLAG(A);
+        break;
+    case PHA: // Push Accumulator
+        PUSH(A);
+        break;
+    case PHP: // Push Processor Status
+        PUSH(PS | 0x10);
+        break;
+    case PLA: // Pull Accumulator
+        A = POP();
+        SET_ZN_FLAG(A);
+        break;
+    case PLP: // Pull Processor Status
+        PS = (POP() & 0xEF) | 0x20;
+        break;
+    case RLA: // ROL AND
+        c = C;
+        if (mode == MODE_ACCUMULATOR) {
+            if ((A >> 7) & 1) {
+                SET_FLAG(C_FLAG);
+            } else {
+                CLR_FLAG(C_FLAG);
+            }
+            A = (A << 1) | c;
+            SET_ZN_FLAG(A);
+        } else {
+            value = READ(address);
+            if ((value >> 7) & 1) {
+                SET_FLAG(C_FLAG);
+            } else {
+                CLR_FLAG(C_FLAG);
+            }
+            value = (value << 1) | c;
+            WRITE(address, value);
+            SET_ZN_FLAG(value);
+        }
+        A &= READ(address);
+        SET_ZN_FLAG(A);
+        break;
+    case ROL: // Rotate Left
+        c = C;
+        if (mode == MODE_ACCUMULATOR) {
+            if ((A >> 7) & 1) {
+                SET_FLAG(C_FLAG);
+            } else {
+                CLR_FLAG(C_FLAG);
+            }
+            A = (A << 1) | c;
+            SET_ZN_FLAG(A);
+        } else {
+            value = READ(address);
+            if ((value >> 7) & 1) {
+                SET_FLAG(C_FLAG);
+            } else {
+                CLR_FLAG(C_FLAG);
+            }
+            value = (value << 1) | c;
+            WRITE(address, value);
+            SET_ZN_FLAG(value);
+        }
+        break;
+    case ROR: // Rotate Right
+        c = C;
+        if (mode == MODE_ACCUMULATOR) {
+            if (A & 1) {
+                SET_FLAG(C_FLAG);
+            } else {
+                CLR_FLAG(C_FLAG);
+            }
+            A = (A << 1) | (c << 7);
+            SET_ZN_FLAG(A);
+        } else {
+            value = READ(address);
+            if (value & 1) {
+                SET_FLAG(C_FLAG);
+            } else {
+                CLR_FLAG(C_FLAG);
+            }
+            value = (value << 1) | (c << 7);
+            WRITE(address, value);
+            SET_ZN_FLAG(value);
+        }
+        break;
+    case RRA: // ROR ADC
+        c = C;
+        if (mode == MODE_ACCUMULATOR) {
+            if (A & 1) {
+                SET_FLAG(C_FLAG);
+            } else {
+                CLR_FLAG(C_FLAG);
+            }
+            A = (A << 1) | (c << 7);
+            SET_ZN_FLAG(A);
+        } else {
+            value = READ(address);
+            if (value & 1) {
+                SET_FLAG(C_FLAG);
+            } else {
+                CLR_FLAG(C_FLAG);
+            }
+            value = (value << 1) | (c << 7);
+            WRITE(address, value);
+            SET_ZN_FLAG(value);
+        }
+        a = A;
+        b = READ(address);
+        c = C;
+        A = a + b + c;
+        SET_ZN_FLAG(A);
+        if (((uint16_t)a + (uint16_t)b + (uint16_t)c) > 0xFF) {
+            SET_FLAG(C_FLAG);
+        } else {
+            CLR_FLAG(C_FLAG);
+        }
+        if (((a ^ b) & 0x80) == 0 && ((a ^ A) & 0x80) != 0) {
+            SET_FLAG(V_FLAG);
+        } else {
+            CLR_FLAG(V_FLAG);
+        }
+        break;
+    case RTI: // Return from Interrupt
+        PS = (POP() & 0xEF) | 0x20;
+        PC = POPW();
+        break;
+    case RTS: // Return from Subroutine
+        PC = POPW() + 1;
+        break;
+    case SAX:
+        WRITE(address, A & X);
+        break;
+    case SBC: // Subtract with Carry
+        a = A;
+        b = READ(address);
+        c = C;
+        A = a - b - (1 - c);
+        SET_ZN_FLAG(A);
+        if (((int16_t)a - (int16_t)b - (int16_t)(1 - c)) > 0xFF) {
+            SET_FLAG(C_FLAG);
+        } else {
+            CLR_FLAG(C_FLAG);
+        }
+        if (((a ^ b) & 0x80) == 0 && ((a ^ A) & 0x80) != 0) {
+            SET_FLAG(V_FLAG);
+        } else {
+            CLR_FLAG(V_FLAG);
+        }
+        break;
+    case SEC: // Set Carry Flag
+        SET_FLAG(C_FLAG);
+        break;
+    case SED: // Set Decimal Flag
+        SET_FLAG(D_FLAG);
+        break;
+    case SEI: // Set Interrupt Disable
+        SET_FLAG(I_FLAG);
+        break;
+    case SHX:
+        ASSERT(false);
+        break;
+    case SHY:
+        ASSERT(false);
+        break;
+    case SLO: // ASL ORA
+        if (mode == MODE_ACCUMULATOR) {
+            if ((A >> 7) & 1) {
+                SET_FLAG(C_FLAG);
+            } else {
+                CLR_FLAG(C_FLAG);
+            }
+            A <<= 1;
+            SET_ZN_FLAG(A);
+        } else {
+            value = READ(address);
+            if ((value >> 7) & 1) {
+                SET_FLAG(C_FLAG);
+            } else {
+                CLR_FLAG(C_FLAG);
+            }
+            value <<= 1;
+            WRITE(address, value);
+            SET_ZN_FLAG(value);
+        }
+        A |= READ(address);
+        SET_ZN_FLAG(A);
+        break;
+    case SRE: // LSR EOR
+        if (mode == MODE_ACCUMULATOR) {
+            if (A & 1) {
+                SET_FLAG(C_FLAG);
+            } else {
+                CLR_FLAG(C_FLAG);
+            }
+            A >>= 1;
+            SET_ZN_FLAG(A);
+        } else {
+            value = READ(address);
+            if (value & 1) {
+                SET_FLAG(C_FLAG);
+            } else {
+                CLR_FLAG(C_FLAG);
+            }
+            value >>= 1;
+            WRITE(address, value);
+            SET_ZN_FLAG(value);
+        }
+        A ^= READ(address);
+        SET_ZN_FLAG(A);
+        break;
+    case STA: // Store Accumulator
+        WRITE(address, A);
+        break;
+    case STX: // Store X Register
+        WRITE(address, X);
+        break;
+    case STY: // Store Y Register
+        WRITE(address, Y);
+        break;
+    case TAS:
+        ASSERT(false);
+        break;
+    case TAX: // Transfer Accumulator to X
+        X = A;
+        SET_ZN_FLAG(X);
+        break;
+    case TAY: // Transfer Accumulator to Y
+        Y = A;
+        SET_ZN_FLAG(Y);
+        break;
+    case TSX: // Transfer Stack Pointer to X
+        X = SP;
+        SET_ZN_FLAG(X);
+        break;
+    case TXA: // Transfer Index X to Accumulator
+        A = X;
+        SET_ZN_FLAG(A);
+        break;
+    case TXS: // Transfer Index X to Stack Pointer
+        SP = X;
+        SET_ZN_FLAG(SP);
+        break;
+    case TYA: // Transfer Index Y to Accumulator
+        A = Y;
+        SET_ZN_FLAG(A);
+        break;
+    case XAA:
+        ASSERT(false);
+        break;
+    }
+    return CYCLES - cycles;
 }

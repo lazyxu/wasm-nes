@@ -18,6 +18,9 @@ int32_t cartridge_load(cartridge_t *cart, uint8_t *data, uint32_t data_len) {
 
     ines_header_t *header = (ines_header_t *)data;
 
+    cart->num_prg_rom_bank = header->num_prg_rom_bank;
+    cart->num_chr_rom_bank = header->num_chr_rom_bank;
+    DEBUG_MSG("num_prg_rom_bank:%u, num_chr_rom_bank:%u\n", header->num_prg_rom_bank, header->num_chr_rom_bank);
     // Identify the rom as an iNES file: NES\x1a.
     if (header->magic != INES_FILE_MAGIC) {
         return EINVALID_INES_HEADER;

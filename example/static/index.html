@@ -12,6 +12,7 @@
     <p>The test result can be found in console.</p>
     <script>
         var nes_load = Module.cwrap("nes_load", "number", ["array", "number"]);
+        var nes_cpu_step = Module.cwrap("nes_cpu_step", ["number"]);
 
         function convertBinaryStringToUint8Array(bStr) {
             var i, len = bStr.length, u8_array = new Uint8Array(len);
@@ -29,6 +30,10 @@
                         let data = new Uint8Array(buffer);
                         let ret = nes_load(data, data.length);
                         console.log(ret);
+                        setInterval(() => {
+                            let ret = nes_cpu_step();
+                            console.log(ret);
+                        }, 1000);
                     })
                 })
         }, 1000);

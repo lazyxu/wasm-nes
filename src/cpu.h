@@ -106,7 +106,7 @@ typedef enum {
     TXS,
     TYA,
     XAA,
-} instruction_t;
+} opcode_t;
 
 typedef struct {
     struct _nes_t *nes;
@@ -120,11 +120,13 @@ typedef struct {
     interrupt_t interrupt;
     addressing_mode_t addressing_mode;
     uint16_t cycles;
+    uint16_t stall;
 } cpu_t;
-
-void cpu_reset(cpu_t *cpu);
 
 uint8_t cpu_read(struct _nes_t *_nes, uint16_t addr);
 void cpu_write(struct _nes_t *_nes, uint16_t addr, uint8_t val);
+
+void cpu_reset(cpu_t *cpu);
+uint8_t cpu_step(cpu_t *cpu);
 
 #endif // WASM_NES_CPU_H

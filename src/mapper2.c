@@ -6,16 +6,18 @@
 
 void mapper_init(mmc_t *mmc) {
     DEBUG_MSG("mapper_2 init\n");
-    TRACE_MSG("mmc->cart->chr_ram: %X\n", (uint32_t)(mmc->cart->chr_ram));
     ASSERT(mmc->cart->chr_ram != NULL);
 }
 
 void mapper_free() { DEBUG_MSG("mapper_2 free\n"); }
 
 uint8_t mapper_cpu_read(mmc_t *mmc, uint16_t addr) {
+    TRACE_MSG("mapper_cpu_read: %x\n", addr);
     if (addr >= 0xc000) {
+        TRACE_MSG("prg_rom offset: %u, %x\n", mmc->prg_rom_bank_c000, mmc->prg_rom_bank_c000 * 0x4000 + addr - 0xc000);
         return mmc->cart->prg_rom[mmc->prg_rom_bank_c000 * 0x4000 + addr - 0xc000];
     } else if (addr >= 0x8000) {
+        TRACE_MSG("prg_rom offset: %u, %x\n", mmc->prg_rom_bank_8000, mmc->prg_rom_bank_8000 * 0x4000 + addr - 0x8000);
         return mmc->cart->prg_rom[mmc->prg_rom_bank_8000 * 0x4000 + addr - 0x8000];
     }
     ASSERT(false);

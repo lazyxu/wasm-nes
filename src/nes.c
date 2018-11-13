@@ -4,6 +4,9 @@
 
 #include "nes.h"
 #include "cartridge.h"
+
+static nes_t *g_nes = NULL;
+
 nes_t *new_nes() {
     nes_t *nes = malloc(sizeof(nes_t));
     nes->cart = malloc(sizeof(cartridge_t));
@@ -14,6 +17,7 @@ nes_t *new_nes() {
     nes->apu = malloc(sizeof(cpu_t));
     nes->apu->nes = nes;
     nes->mmc = malloc(sizeof(mmc_t));
+    g_nes = nes;
     return nes;
 }
 
@@ -22,7 +26,7 @@ int32_t nes_load(uint8_t *data, uint32_t data_len) {
     nes_t *nes = new_nes();
     int32_t ret;
     DEBUG_MSG("DEBUG MODE\n");
-    HEX_DUMP(data, data_len);
+    // HEX_DUMP(data, data_len);
     if ((ret = cartridge_load(nes->cart, data, data_len)) && ret != EOK) {
         DEBUG_MSG("cartridge_load exit\n");
         return ret;
@@ -31,6 +35,9 @@ int32_t nes_load(uint8_t *data, uint32_t data_len) {
     cpu_reset(nes->cpu);
     return ret;
 }
+
+EMSCRIPTEN_KEEPALIVE
+uint8_t nes_cpu_step() { return cpu_step(g_nes->cpu); }
 
 void nes_free(nes_t *nes) {
     DEBUG_MSG("NES FREE\n");
