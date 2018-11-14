@@ -1,0 +1,46 @@
+cmake_minimum_required(VERSION 3.7)
+project(nes)
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
+  set(CMAKE_C_COMPILER "emcc")
+  set(USING_EMCC 1)
+endif()
+
+if(VERSION)
+  if("${VERSION}" STREQUAL "TRACE")
+    add_definitions(-DTRACE)
+  elseif("${VERSION}" STREQUAL "DEBUG")
+    add_definitions(-DDEBUG)
+  elseif("${VERSION}" STREQUAL "RELEASE")
+    add_definitions(-DRELEASE)
+  else()
+    message(FATAL_ERROR "Invalid VERSION ${VERSION}, excepted TRACE, DEBUG or RELEASE!")
+  endif()
+else()
+  set(VERSION "RELEASE")
+  add_definitions(-DRELEASE)
+endif()
+
+message(STATUS "SYSTEM                    " ${CMAKE_SYSTEM_NAME})
+message(STATUS "COMPILER                  " ${CMAKE_C_COMPILER})
+message(STATUS "VERSION                   " ${VERSION})
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
+
+file(GLOB SOURCE_FILES "src/*.h" "src/*.c")
+
+include_directories(~/emsdk/emscripten/1.38.16/system/include)
+
+if(USING_EMCC)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Os")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s WASM=1")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"cwrap\"]'")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s ALLOW_MEMORY_GROWTH=1")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s ASSERTIONS=2")
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/example/static)
+  add_definitions(-DWASM)
+else()
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/build)
+endif()
+
+add_executable(nes ${SOURCE_FILES})

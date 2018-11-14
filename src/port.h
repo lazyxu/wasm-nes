@@ -24,13 +24,14 @@
         ptr = NULL;                                                                                                    \
     } while (0)
 
-#ifdef TRACE
-#ifndef DEBUG
-#define DEBUG
-#endif // !DEBUG
-#endif // TRACE
+#ifdef RELEASE
 
-#ifdef DEBUG
+#define ASSERT(...)
+#define DEBUG_MSG(...)
+#define TRACE_MSG(...)
+#define HEX_DUMP(...)
+
+#else // !RELEASE
 
 #include <stdio.h>
 
@@ -61,15 +62,11 @@
         }                                                                                                              \
         printf("\n");                                                                                                  \
     } while (0)
-#else // !TRACE
+#else
 #define TRACE_MSG(...)
 #define HEX_DUMP(...)
 #endif // TRACE
 
-#else // !DEBUG
-#define ASSERT(...)
-#define HEX_DUMP(...)
-
-#endif
+#endif // RELEASE
 
 #endif // WASM_NES_PORT_H

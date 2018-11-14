@@ -21,11 +21,16 @@ nes_t *new_nes() {
     return nes;
 }
 
+void nes_free(nes_t *nes) {
+    DEBUG_MSG("NES FREE\n");
+    cartridge_free(nes->cart);
+    FREE(nes->cart);
+}
+
 EMSCRIPTEN_KEEPALIVE
 int32_t nes_load(uint8_t *data, uint32_t data_len) {
     nes_t *nes = new_nes();
     int32_t ret;
-    DEBUG_MSG("DEBUG MODE\n");
     // HEX_DUMP(data, data_len);
     if ((ret = cartridge_load(nes->cart, data, data_len)) && ret != EOK) {
         DEBUG_MSG("cartridge_load exit\n");
@@ -36,11 +41,23 @@ int32_t nes_load(uint8_t *data, uint32_t data_len) {
     return ret;
 }
 
+#ifndef RELEASE
 EMSCRIPTEN_KEEPALIVE
 uint8_t nes_cpu_step() { return cpu_step(g_nes->cpu); }
+#endif
 
-void nes_free(nes_t *nes) {
-    DEBUG_MSG("NES FREE\n");
-    cartridge_free(nes->cart);
-    FREE(nes->cart);
+#ifdef WASM
+int main() {
+    printf("Module wasm-nes loaded.\n");
+    DEBUG_MSG("DEBUG VERSION\n");
+    TRACE_MSG("TRACE VERSION\n");
+    return 0;
 }
+#else
+int main() {
+    printf("Hello from a simple NES Emulator!\n");
+    DEBUG_MSG("DEBUG VERSION\n");
+    TRACE_MSG("TRACE VERSION\n");
+    return 0;
+}
+#endif

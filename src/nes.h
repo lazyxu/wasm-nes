@@ -22,10 +22,4 @@ typedef struct _nes_t {
     controller_t controller[2];
 } nes_t;
 
-// int32_t nes_init();
-nes_t *new_nes();
-int32_t nes_load(uint8_t *data, uint32_t data_len);
-void nes_free();
-// int32_t nes_reset();
-
 #endif // WASM_NES_NES_H
