@@ -42,4 +42,6 @@ void mmc_init(mmc_t *mmc, cartridge_t *cart, cpu_t *cpu, ppu_t *ppu) {
     DEBUG_MSG("mmc_init done\n");
 }
 
-void mmc_free(mmc_t *mmc) { mmc->mapper->mapper_free(); }
+void mmc_free(mmc_t *mmc) {
+    mmc->mapper->mapper_free();
+}

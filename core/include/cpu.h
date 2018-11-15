@@ -105,7 +105,7 @@ typedef enum {
     TXA,
     TXS,
     TYA,
-    XAA,
+    XAA
 } opcode_t;
 
 typedef struct {

@@ -14,40 +14,23 @@ git clone https://github.com/MeteorKL/wasm-nes
 cd wasm-nes
 ```
 
-### Create build directory and active environment variables
+### Build and run
+you can execute the scripts(`tools/run_xxx.sh`) to build and run in one click.
+
+#### NATIVE executable file
 ```sh
-mkdir -p build && cd build
-source ~/emsdk/emsdk_env.sh
+bash ./tools/run_native.sh
 ```
 
-### Build wasm-nes
-you can execute the script(`run.sh`) to compile and run in one click.
-
-#### Compiling to a NATIVE executable file
+#### WASM and JavaScript "glue" code
 ```sh
-cmake .. && make
-./nes
+bash ./tools/run_wasm.sh
 ```
 
-#### Compiling to wasm and just creating the JavaScript
-
-Build RELEASE version:
-```sh
-cmake -DCMAKE_TOOLCHAIN_FILE=~/emsdk/emscripten/1.38.16/cmake/Modules/Platform/Emscripten.cmake .. && make
-```
-
-Build DEBUG version:
-```sh
-cmake -DCMAKE_TOOLCHAIN_FILE=~/emsdk/emscripten/1.38.16/cmake/Modules/Platform/Emscripten.cmake -DVERSION=DEBUG .. && make
-```
-
-Build TRACE version:
-```sh
-cmake -DCMAKE_TOOLCHAIN_FILE=~/emsdk/emscripten/1.38.16/cmake/Modules/Platform/Emscripten.cmake -DVERSION=TRACE .. && make
-```
+open http://localhost:1111/.
 
 ## Examples
-see [example/static/index.html](example/static/index.html)
+see [targets/wasm/example/static/index.html](targets/wasm/example/static/index.html)
 
 ## Docs
 - [Compiling a New C/C++ Module to WebAssembly](https://developer.mozilla.org/en-US/docs/WebAssembly/C_to_wasm)

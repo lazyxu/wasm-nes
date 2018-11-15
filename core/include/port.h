@@ -10,7 +10,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <emscripten/emscripten.h>
+#ifdef LOG_DEBUG
+#define PRINT_LOG_LEVEL(...)                                                                                           \
+    do {                                                                                                               \
+        printf("LOG LEVEL: DEBUG\n");                                                                                  \
+    } while (0)
+#elif defined(LOG_TRACE)
+#define PRINT_LOG_LEVEL(...)                                                                                           \
+    do {                                                                                                               \
+        printf("LOG LEVEL: TRACE\n");                                                                                  \
+    } while (0)
+#else
+#define PRINT_LOG_LEVEL(...)
+#endif
 
 #define EOK 0
 #define EINVALID_ARGUMENT -1
@@ -24,14 +36,14 @@
         ptr = NULL;                                                                                                    \
     } while (0)
 
-#ifdef RELEASE
+#ifdef LOG_OFF
 
 #define ASSERT(...)
 #define DEBUG_MSG(...)
 #define TRACE_MSG(...)
 #define HEX_DUMP(...)
 
-#else // !RELEASE
+#else // !LOG_OFF
 
 #include <stdio.h>
 
@@ -43,7 +55,7 @@
 
 #define DEBUG_MSG printf
 
-#ifdef TRACE
+#ifdef LOG_TRACE
 #define TRACE_MSG printf
 #define HEX_DUMP(data, data_len)                                                                                       \
     do {                                                                                                               \
@@ -67,6 +79,6 @@
 #define HEX_DUMP(...)
 #endif // TRACE
 
-#endif // RELEASE
+#endif // LOG_OFF
 
 #endif // WASM_NES_PORT_H

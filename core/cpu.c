@@ -178,17 +178,11 @@ uint8_t cpu_read(nes_t *nes, uint16_t addr) {
         return ppu_read_register(nes->ppu, 0x2000 + ((addr - 0x2000) & 7));
     } else if (addr < 0x4020) {
         switch (addr) {
-        case 0x4014:
-            return ppu_read_register(nes->ppu, addr);
-        case 0x4015:
-            return apu_read_register(nes->apu, addr);
-        case 0x4016:
-            return controller_read(&nes->controller[0]);
-        case 0x4017:
-            return controller_read(&nes->controller[1]);
-        default:
-            DEBUG_MSG("unhandled I/O Registers II read at addr: %X\n", addr);
-            return 0;
+        case 0x4014: return ppu_read_register(nes->ppu, addr);
+        case 0x4015: return apu_read_register(nes->apu, addr);
+        case 0x4016: return controller_read(&nes->controller[0]);
+        case 0x4017: return controller_read(&nes->controller[1]);
+        default: DEBUG_MSG("unhandled I/O Registers II read at addr: %X\n", addr); return 0;
         }
     } else if (addr < 0x6000) {
         DEBUG_MSG("TODO: I/O registers\n");
@@ -200,6 +194,7 @@ uint8_t cpu_read(nes_t *nes, uint16_t addr) {
         return nes->mmc->mapper->mapper_cpu_read(nes->mmc, addr);
     }
     ASSERT(false);
+    return 0;
 }
 
 void cpu_write(nes_t *nes, uint16_t addr, uint8_t val) {
@@ -215,16 +210,11 @@ void cpu_write(nes_t *nes, uint16_t addr, uint8_t val) {
         ppu_write_register(nes->ppu, 0x2000 + ((addr - 0x2000) & 7), val);
     } else if (addr < 0x4020) {
         switch (addr) {
-        case 0x4014:
-            ppu_write_register(nes->ppu, addr, val);
-        case 0x4015:
-            apu_write_register(nes->apu, addr, val);
-        case 0x4016:
-            controller_write(&nes->controller[0], val);
-        case 0x4017:
-            controller_write(&nes->controller[1], val);
-        default:
-            DEBUG_MSG("unhandled I/O Registers II write at addr: %X\n", addr);
+        case 0x4014: ppu_write_register(nes->ppu, addr, val);
+        case 0x4015: apu_write_register(nes->apu, addr, val);
+        case 0x4016: controller_write(&nes->controller[0], val);
+        case 0x4017: controller_write(&nes->controller[1], val);
+        default: DEBUG_MSG("unhandled I/O Registers II write at addr: %X\n", addr);
         }
     } else if (addr < 0x6000) {
         DEBUG_MSG("TODO: I/O registers\n");
@@ -255,8 +245,12 @@ uint16_t cpu_read16bug(cpu_t *cpu, uint16_t addr) {
     return ((hi & 0xff) << 8) | (lo & 0xff);
 }
 
-static void push(cpu_t *cpu, uint8_t val) { RAM[(SP--) | STACK_TOP] = (val); }
-static uint8_t pop(cpu_t *cpu) { return RAM[(++SP) | STACK_TOP]; }
+static void push(cpu_t *cpu, uint8_t val) {
+    RAM[(SP--) | STACK_TOP] = (val);
+}
+static uint8_t pop(cpu_t *cpu) {
+    return RAM[(++SP) | STACK_TOP];
+}
 static void push16(cpu_t *cpu, uint16_t val) {
     push(cpu, val >> 8);
     push(cpu, val);
@@ -322,7 +316,9 @@ static uint16_t pop16(cpu_t *cpu) {
 /**
  * causes a Non-Maskable Interrupt to occur on the next cycle
  */
-void cpu_nmi(cpu_t *cpu) { SET_IRQ(INT_NMI); }
+void cpu_nmi(cpu_t *cpu) {
+    SET_IRQ(INT_NMI);
+}
 
 /**
  * causes an IRQ interrupt to occur on the next cycle
@@ -389,14 +385,9 @@ uint8_t cpu_step(cpu_t *cpu) {
 
     // interrupt
     switch (cpu->interrupt) {
-    case INT_IRQ:
-        IRQ();
-        break;
-    case INT_NMI:
-        NMI();
-        break;
-    default:
-        break;
+    case INT_IRQ: IRQ(); break;
+    case INT_NMI: NMI(); break;
+    default: break;
     }
     SET_IRQ(INT_NONE);
     uint8_t instruction = READ(PC);
@@ -408,9 +399,7 @@ uint8_t cpu_step(cpu_t *cpu) {
     bool page_crossed;
     uint8_t offset;
     switch (mode) {
-    case MODE_ABSOLUTE:
-        address = READW(PC + 1);
-        break;
+    case MODE_ABSOLUTE: address = READW(PC + 1); break;
     case MODE_ABSOLUTE_X:
         address = READW(PC + 1) + X;
         page_crossed = PAGE_DIFF(address - X, address);
@@ -419,21 +408,11 @@ uint8_t cpu_step(cpu_t *cpu) {
         address = READW(PC + 1) + Y;
         page_crossed = PAGE_DIFF(address - Y, address);
         break;
-    case MODE_ACCUMULATOR:
-        address = 0;
-        break;
-    case MODE_IMMEDIATE:
-        address = PC + 1;
-        break;
-    case MODE_IMPLIED:
-        address = 0;
-        break;
-    case MODE_INDEXED_INDIRECT:
-        address = READW(READ(PC + 1) + X);
-        break;
-    case MODE_INDIRECT:
-        address = READW(READ(PC + 1));
-        break;
+    case MODE_ACCUMULATOR: address = 0; break;
+    case MODE_IMMEDIATE: address = PC + 1; break;
+    case MODE_IMPLIED: address = 0; break;
+    case MODE_INDEXED_INDIRECT: address = READW(READ(PC + 1) + X); break;
+    case MODE_INDIRECT: address = READW(READ(PC + 1)); break;
     case MODE_INDIRECT_INDEXED:
         address = READW(READ(PC + 1)) + Y;
         page_crossed = PAGE_DIFF(address - Y, address);
@@ -442,15 +421,9 @@ uint8_t cpu_step(cpu_t *cpu) {
         offset = READ(PC + 1);
         address = offset < 0x80 ? PC + 2 + offset : PC + 2 + offset - 0x100;
         break;
-    case MODE_ZERO_PAGE:
-        address = READ(PC + 1);
-        break;
-    case MODE_ZERO_PAGE_X:
-        address = READ(PC + 1) + X;
-        break;
-    case MODE_ZERO_PAGE_Y:
-        address = READ(PC + 1) + Y;
-        break;
+    case MODE_ZERO_PAGE: address = READ(PC + 1); break;
+    case MODE_ZERO_PAGE_X: address = READ(PC + 1) + X; break;
+    case MODE_ZERO_PAGE_Y: address = READ(PC + 1) + Y; break;
     }
     if (page_crossed) {
         CYCLES += g_page_cycle[instruction];
@@ -478,22 +451,14 @@ uint8_t cpu_step(cpu_t *cpu) {
         } else {
             CLR_FLAG(V_FLAG);
         }
-    case AHX:
-        ASSERT(false);
-        break;
-    case ALR:
-        ASSERT(false);
-        break;
-    case ANC:
-        ASSERT(false);
-        break;
+    case AHX: ASSERT(false); break;
+    case ALR: ASSERT(false); break;
+    case ANC: ASSERT(false); break;
     case AND: // Logical AND
         A = A & READ(address);
         SET_ZN_FLAG(A);
         break;
-    case ARR:
-        ASSERT(false);
-        break;
+    case ARR: ASSERT(false); break;
     case ASL: // Arithmetic Shift Left
         if (mode == MODE_ACCUMULATOR) {
             if ((A >> 7) & 1) {
@@ -515,9 +480,7 @@ uint8_t cpu_step(cpu_t *cpu) {
             SET_ZN_FLAG(value);
         }
         break;
-    case AXS:
-        ASSERT(false);
-        break;
+    case AXS: ASSERT(false); break;
     case BCC: // Branch if Carry Clear
         if (C == 0) {
             PC = address;
@@ -669,12 +632,8 @@ uint8_t cpu_step(cpu_t *cpu) {
         PUSH(PC - 1);
         PC = address;
         break;
-    case KIL:
-        ASSERT(false);
-        break;
-    case LAS:
-        ASSERT(false);
-        break;
+    case KIL: ASSERT(false); break;
+    case LAS: ASSERT(false); break;
     case LAX:
         value = READ(address);
         A = value;
@@ -845,9 +804,7 @@ uint8_t cpu_step(cpu_t *cpu) {
     case RTS: // Return from Subroutine
         PC = POPW() + 1;
         break;
-    case SAX:
-        WRITE(address, A & X);
-        break;
+    case SAX: WRITE(address, A & X); break;
     case SBC: // Subtract with Carry
         a = A;
         b = READ(address);
@@ -874,12 +831,8 @@ uint8_t cpu_step(cpu_t *cpu) {
     case SEI: // Set Interrupt Disable
         SET_FLAG(I_FLAG);
         break;
-    case SHX:
-        ASSERT(false);
-        break;
-    case SHY:
-        ASSERT(false);
-        break;
+    case SHX: ASSERT(false); break;
+    case SHY: ASSERT(false); break;
     case SLO: // ASL ORA
         if (mode == MODE_ACCUMULATOR) {
             if ((A >> 7) & 1) {
@@ -935,9 +888,7 @@ uint8_t cpu_step(cpu_t *cpu) {
     case STY: // Store Y Register
         WRITE(address, Y);
         break;
-    case TAS:
-        ASSERT(false);
-        break;
+    case TAS: ASSERT(false); break;
     case TAX: // Transfer Accumulator to X
         X = A;
         SET_ZN_FLAG(X);
@@ -962,9 +913,7 @@ uint8_t cpu_step(cpu_t *cpu) {
         A = Y;
         SET_ZN_FLAG(A);
         break;
-    case XAA:
-        ASSERT(false);
-        break;
+    case XAA: ASSERT(false); break;
     }
     return CYCLES - cycles;
 }

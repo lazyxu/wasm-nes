@@ -11,7 +11,7 @@
     <h1>Compile C to WebAssembly</h1>
     <p>The test result can be found in console.</p>
     <script>
-        var nes_load = Module.cwrap("nes_load", "number", ["array", "number"]);
+        var nes_load = Module.cwrap("_nes_load", "number", ["array", "number"]);
         var nes_cpu_step = Module.cwrap("nes_cpu_step", ["number"]);
 
         function convertBinaryStringToUint8Array(bStr) {

@@ -9,7 +9,9 @@ void mapper_init(mmc_t *mmc) {
     ASSERT(mmc->cart->chr_ram != NULL);
 }
 
-void mapper_free() { DEBUG_MSG("mapper_2 free\n"); }
+void mapper_free() {
+    DEBUG_MSG("mapper_2 free\n");
+}
 
 uint8_t mapper_cpu_read(mmc_t *mmc, uint16_t addr) {
     TRACE_MSG("mapper_cpu_read: %x\n", addr);
@@ -21,6 +23,7 @@ uint8_t mapper_cpu_read(mmc_t *mmc, uint16_t addr) {
         return mmc->cart->prg_rom[mmc->prg_rom_bank_8000 * 0x4000 + addr - 0x8000];
     }
     ASSERT(false);
+    return 0;
 }
 
 void mapper_cpu_write(mmc_t *mmc, uint16_t addr, uint8_t val) {
@@ -38,6 +41,7 @@ uint8_t mapper_ppu_read(mmc_t *mmc, uint16_t addr) {
         return mmc->cart->chr_ram[addr - 0x6000];
     }
     ASSERT(false);
+    return 0;
 }
 
 void mapper_ppu_write(mmc_t *mmc, uint16_t addr, uint8_t val) {
