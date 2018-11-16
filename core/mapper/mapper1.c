@@ -13,6 +13,7 @@ void mapper_free() {
 }
 
 uint8_t mapper_cpu_read(mmc_t *mmc, uint16_t addr) {
+    ASSERT(false);
     return 0;
 }
 
@@ -20,6 +21,7 @@ void mapper_cpu_write(mmc_t *mmc, uint16_t addr, uint8_t val) {
 }
 
 uint8_t mapper_ppu_read(mmc_t *mmc, uint16_t addr) {
+    ASSERT(false);
     return 0;
 }
 

@@ -30,7 +30,7 @@ typedef struct {
     uint8_t *prg_rom;
     uint8_t num_chr_rom_bank; // number of CHR-ROM banks (8KB each)
     uint8_t *chr_rom;
-    uint8_t *chr_ram;
+    bool is_chr_ram;
 } cartridge_t;
 
 int32_t cartridge_load(cartridge_t *cart, uint8_t *data, uint32_t data_len);
@@ -38,7 +38,7 @@ void cartridge_free(cartridge_t *cart);
 
 #define COPY_DATA(dst, size)                                                                                           \
     do {                                                                                                               \
-        if (data + size < data_end) {                                                                                  \
+        if (data + size > data_end) {                                                                                  \
             return EINVALID_INES_CONTENT;                                                                              \
         }                                                                                                              \
         dst = malloc(size);                                                                                            \

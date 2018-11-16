@@ -10,7 +10,6 @@ int32_t cartridge_load(cartridge_t *cart, uint8_t *data, uint32_t data_len) {
     ASSERT(cart->trainer == NULL);
     ASSERT(cart->prg_rom == NULL);
     ASSERT(cart->chr_rom == NULL);
-    ASSERT(cart->chr_ram == NULL);
     if (data == NULL || data_len == 0) {
         return EINVALID_ARGUMENT;
     }
@@ -18,8 +17,6 @@ int32_t cartridge_load(cartridge_t *cart, uint8_t *data, uint32_t data_len) {
 
     ines_header_t *header = (ines_header_t *)data;
 
-    cart->num_prg_rom_bank = header->num_prg_rom_bank;
-    cart->num_chr_rom_bank = header->num_chr_rom_bank;
     DEBUG_MSG("num_prg_rom_bank:%u, num_chr_rom_bank:%u\n", header->num_prg_rom_bank, header->num_chr_rom_bank);
     // Identify the rom as an iNES file: NES\x1a.
     if (header->magic != INES_FILE_MAGIC) {
@@ -69,9 +66,12 @@ int32_t cartridge_load(cartridge_t *cart, uint8_t *data, uint32_t data_len) {
         COPY_DATA(cart->chr_rom, header->num_chr_rom_bank * CHR_ROM_SIZE);
     } else {
         // Provide CHR-ROM and CHR-RAM if not in the rom:
+        header->num_chr_rom_bank = 1;
+        cart->is_chr_ram = true;
         cart->chr_rom = malloc(CHR_ROM_SIZE);
-        cart->chr_ram = malloc(CHR_RAM_SIZE);
     }
+    cart->num_prg_rom_bank = header->num_prg_rom_bank;
+    cart->num_chr_rom_bank = header->num_chr_rom_bank;
 
     // Check if the contents of rom have been completely read.
     if (data != data_end) {
@@ -87,5 +87,4 @@ void cartridge_free(cartridge_t *cart) {
     FREE(cart->trainer);
     FREE(cart->prg_rom);
     FREE(cart->chr_rom);
-    FREE(cart->chr_ram);
 }

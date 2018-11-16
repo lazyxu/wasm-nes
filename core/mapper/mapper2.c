@@ -6,7 +6,6 @@
 
 void mapper_init(mmc_t *mmc) {
     DEBUG_MSG("mapper_2 init\n");
-    ASSERT(mmc->cart->chr_ram != NULL);
 }
 
 void mapper_free() {
@@ -37,8 +36,6 @@ void mapper_cpu_write(mmc_t *mmc, uint16_t addr, uint8_t val) {
 uint8_t mapper_ppu_read(mmc_t *mmc, uint16_t addr) {
     if (addr < 0x2000) {
         return mmc->cart->chr_rom[addr];
-    } else if (addr >= 0x6000) {
-        return mmc->cart->chr_ram[addr - 0x6000];
     }
     ASSERT(false);
     return 0;
@@ -47,7 +44,5 @@ uint8_t mapper_ppu_read(mmc_t *mmc, uint16_t addr) {
 void mapper_ppu_write(mmc_t *mmc, uint16_t addr, uint8_t val) {
     if (addr < 0x2000) {
         mmc->cart->chr_rom[addr] = val;
-    } else if (addr >= 0x6000) {
-        mmc->cart->chr_ram[addr - 0x6000] = val;
     }
 }

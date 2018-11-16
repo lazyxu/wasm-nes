@@ -23,7 +23,7 @@
         }
 
         setTimeout(() => {
-            fetch("/rom/test.nes")
+            fetch("/roms/test.nes")
                 .then(response => {
                     window.r = response;
                     response.arrayBuffer().then(buffer => {

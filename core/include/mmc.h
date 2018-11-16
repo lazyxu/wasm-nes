@@ -24,6 +24,7 @@ typedef struct {
     uint8_t chr_rom_bank_size;
     uint8_t chr_rom_bank_0000;
     uint8_t chr_rom_bank_1000;
+    uint8_t *prgRam;
     mapper_t *mapper;
 } mmc_t;
 
