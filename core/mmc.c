@@ -29,9 +29,7 @@ void mmc_init(mmc_t *mmc, cartridge_t *cart, cpu_t *cpu, ppu_t *ppu) {
     ASSERT(mmc->mapper->mapper_init != NULL);
     TRACE_MSG("mmc->mapper->mapper_init: %u\n", (uint8_t)mmc->mapper->mapper_init);
 
-    TRACE_MSG("mmc->prg_rom_bank_size: %u\n", mmc->cart->num_prg_rom_bank);
-    mmc->prg_rom_bank_size = mmc->cart->num_prg_rom_bank;
-    mmc->prg_rom_bank_c000 = mmc->prg_rom_bank_size - 1;
+    mmc->prg_rom_bank_c000 = mmc->cart->num_prg_rom_bank - 1;
     mmc->prg_rom_bank_8000 = 0;
     mmc->chr_rom_bank_1000 = 0;
     mmc->chr_rom_bank_0000 = 0;

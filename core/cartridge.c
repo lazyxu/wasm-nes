@@ -5,6 +5,17 @@
 #include "cartridge.h"
 #include "mirror.h"
 
+cartridge_t *cartridge_init() {
+    cartridge_t *cart = malloc(sizeof(cartridge_t));
+    cart->trainer = NULL;
+    cart->num_prg_rom_bank = 0;
+    cart->prg_rom = NULL;
+    cart->num_chr_rom_bank = 0;
+    cart->chr_rom = NULL;
+    cart->mapper_no = 0;
+    return cart;
+}
+
 int32_t cartridge_load(cartridge_t *cart, uint8_t *data, uint32_t data_len) {
     ASSERT(cart != NULL);
     ASSERT(cart->trainer == NULL);
@@ -17,7 +28,6 @@ int32_t cartridge_load(cartridge_t *cart, uint8_t *data, uint32_t data_len) {
 
     ines_header_t *header = (ines_header_t *)data;
 
-    DEBUG_MSG("num_prg_rom_bank:%u, num_chr_rom_bank:%u\n", header->num_prg_rom_bank, header->num_chr_rom_bank);
     // Identify the rom as an iNES file: NES\x1a.
     if (header->magic != INES_FILE_MAGIC) {
         return EINVALID_INES_HEADER;
@@ -72,6 +82,9 @@ int32_t cartridge_load(cartridge_t *cart, uint8_t *data, uint32_t data_len) {
     }
     cart->num_prg_rom_bank = header->num_prg_rom_bank;
     cart->num_chr_rom_bank = header->num_chr_rom_bank;
+
+    DEBUG_MSG("num_prg_rom_bank:%u, num_chr_rom_bank:%u is_chr_ram: %u\n", cart->num_prg_rom_bank,
+              cart->num_chr_rom_bank, cart->is_chr_ram);
 
     // Check if the contents of rom have been completely read.
     if (data != data_end) {

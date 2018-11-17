@@ -49,7 +49,7 @@
 
 #define ASSERT(test)                                                                                                   \
     if (!(test)) {                                                                                                     \
-        printf("Assertion failed: " #test ", at: %s,%d,%s\n", __FILE__, __LINE__, __FUNCTION__);                       \
+        printf("%s:%d[%s]: Assertion failed: " #test "\n", __FILE__, __LINE__, __FUNCTION__);                          \
         abort();                                                                                                       \
     }
 
@@ -80,5 +80,9 @@
 #endif // TRACE
 
 #endif // LOG_OFF
+
+#ifdef TEST_CPU
+#include <stdio.h>
+#endif
 
 #endif // WASM_NES_PORT_H

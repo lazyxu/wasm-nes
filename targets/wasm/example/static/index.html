@@ -23,17 +23,19 @@
         }
 
         setTimeout(() => {
-            fetch("/roms/test.nes")
+            fetch("/roms/nestest.nes")
                 .then(response => {
                     window.r = response;
                     response.arrayBuffer().then(buffer => {
                         let data = new Uint8Array(buffer);
                         let ret = nes_load(data, data.length);
                         console.log(ret);
-                        setInterval(() => {
-                            let ret = nes_cpu_step();
-                            console.log(ret);
-                        }, 1000);
+                        if (ret == 0) {
+                            setInterval(() => {
+                                let ret = nes_cpu_step();
+                                console.log(ret);
+                            }, 1000);
+                        }
                     })
                 })
         }, 1000);

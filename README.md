@@ -29,8 +29,12 @@ bash ./tools/run_wasm.sh
 
 open http://localhost:1111/.
 
-## Examples
-see [targets/wasm/example/static/index.html](targets/wasm/example/static/index.html)
+## Tests
+test list: https://wiki.nesdev.com/w/index.php/Emulator_tests
+
+test passed:
+
+[x] nestest
 
 ## Docs
 - [Compiling a New C/C++ Module to WebAssembly](https://developer.mozilla.org/en-US/docs/WebAssembly/C_to_wasm)

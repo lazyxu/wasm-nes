@@ -1,5 +1,5 @@
-nes.js
-*.wasm
-static/rom
+static/nes.js
+static/*.wasm
 package-lock.json
 node_modules
+*.nes

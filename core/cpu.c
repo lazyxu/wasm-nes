@@ -122,9 +122,11 @@ const uint8_t g_page_cycle[] = {
 
 #define TST_FLAG(c, v)                                                                                                 \
     do {                                                                                                               \
-        PS &= ~(v);                                                                                                    \
-        if (c)                                                                                                         \
+        if (c) {                                                                                                       \
             PS |= (v);                                                                                                 \
+        } else {                                                                                                       \
+            PS &= ~(v);                                                                                                \
+        }                                                                                                              \
     } while (0)
 #define CHK_FLAG(v) (PS & (v))
 
@@ -237,12 +239,13 @@ uint16_t cpu_read16(cpu_t *cpu, uint16_t addr) {
  *  emulate a 6502 bug that caused the low byte to wrap without incrementing the high byte
  */
 uint16_t cpu_read16bug(cpu_t *cpu, uint16_t addr) {
+    ASSERT(cpu != NULL);
     ASSERT(cpu->nes != NULL);
     uint16_t a = addr;
     uint16_t b = (a & 0xFF00) | ((a + 1) & 0xff);
-    uint8_t lo = cpu_read(cpu->nes, a);
-    uint8_t hi = cpu_read(cpu->nes, b);
-    return ((hi & 0xff) << 8) | (lo & 0xff);
+    uint16_t lo = cpu_read(cpu->nes, a);
+    uint16_t hi = cpu_read(cpu->nes, b);
+    return (hi << 8) | lo;
 }
 
 static void push(cpu_t *cpu, uint8_t val) {
@@ -267,9 +270,9 @@ static uint16_t pop16(cpu_t *cpu) {
 
 #define READ(addr) cpu_read(cpu->nes, addr)
 #define READW(addr) cpu_read16(cpu, addr)
+#define READW_BUG(addr) cpu_read16bug(cpu, addr)
 
 #define WRITE(addr, byte) cpu_write(cpu->nes, addr, byte)
-#define WRITEW(addr, word) cpu_write16(cpu, addr, word)
 
 /**
  * returns true if the two addresses reference different pages
@@ -279,9 +282,9 @@ static uint16_t pop16(cpu_t *cpu) {
 /**
  * add a cycle for taking a branch and adds another cycle if the branch jumps to a new page
  */
-#define ADD_BRANCH_CYCLES(addr)                                                                                        \
+#define ADD_BRANCH_CYCLES(pc, addr)                                                                                    \
     do {                                                                                                               \
-        CYCLES += PAGE_DIFF(PC, addr) ? 2 : 1;                                                                         \
+        CYCLES += PAGE_DIFF(pc, addr) ? 2 : 1;                                                                         \
     } while (0)
 /**
  * compares a and b, set flags
@@ -376,7 +379,68 @@ void cpu_reset(cpu_t *cpu) {
     SET_IRQ(INT_NONE);
 }
 
+#ifdef TEST_CPU
+/**
+ * print the current CPU state
+ */
+int cpu_status(FILE *stream, cpu_t *cpu) {
+    ASSERT(stream != NULL);
+    uint8_t opcode = READ(PC);
+    uint8_t size = g_size[opcode];
+    const char *const _name = g_opcode_names[g_opcode_list[opcode]];
+    const char *name = _name;
+    if (strcmp(_name, "NOP") == 0 && opcode != 0xEA) {
+        name = "*NOP";
+    }
+    if (strcmp(_name, "LAX") == 0) {
+        name = "*LAX";
+    }
+    if (strcmp(_name, "SAX") == 0) {
+        name = "*SAX";
+    }
+    if (strcmp(_name, "SBC") == 0 && opcode == 0xEB) {
+        name = "*SBC";
+    }
+    if (strcmp(_name, "DCP") == 0) {
+        name = "*DCP";
+    }
+    if (strcmp(_name, "ISB") == 0) {
+        name = "*ISB";
+    }
+    if (strcmp(_name, "SLO") == 0) {
+        name = "*SLO";
+    }
+    if (strcmp(_name, "RLA") == 0) {
+        name = "*RLA";
+    }
+    if (strcmp(_name, "SRE") == 0) {
+        name = "*SRE";
+    }
+    if (strcmp(_name, "RRA") == 0) {
+        name = "*RRA";
+    }
+    switch (size) {
+    case 1:
+        return fprintf(stream, "%04X  %02X       %4s             A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%3d\n", PC,
+                       opcode, name, A, X, Y, PS, SP, (CYCLES * 3) % 341);
+        break;
+    case 2:
+        return fprintf(stream, "%04X  %02X %02X    %4s             A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%3d\n", PC,
+                       opcode, READ(PC + 1), name, A, X, Y, PS, SP, (CYCLES * 3) % 341);
+        break;
+    case 3:
+        return fprintf(stream, "%04X  %02X %02X %02X %4s             A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%3d\n", PC,
+                       opcode, READ(PC + 1), READ(PC + 2), name, A, X, Y, PS, SP, (CYCLES * 3) % 341);
+        break;
+    default: ASSERT(false); break;
+    }
+    ASSERT(false);
+    return 0;
+}
+#endif // TEST_CPU
+
 uint8_t cpu_step(cpu_t *cpu) {
+    TRACE_MSG("PC: %X\n", PC);
     if (cpu->stall > 0) {
         cpu->stall--;
         return 1;
@@ -399,31 +463,31 @@ uint8_t cpu_step(cpu_t *cpu) {
     bool page_crossed;
     uint8_t offset;
     switch (mode) {
-    case MODE_ABSOLUTE: address = READW(PC + 1); break;
-    case MODE_ABSOLUTE_X:
+    case ABSOLUTE: address = READW(PC + 1); break;
+    case ABSOLUTE_X:
         address = READW(PC + 1) + X;
         page_crossed = PAGE_DIFF(address - X, address);
         break;
-    case MODE_ABSOLUTE_Y:
+    case ABSOLUTE_Y:
         address = READW(PC + 1) + Y;
         page_crossed = PAGE_DIFF(address - Y, address);
         break;
-    case MODE_ACCUMULATOR: address = 0; break;
-    case MODE_IMMEDIATE: address = PC + 1; break;
-    case MODE_IMPLIED: address = 0; break;
-    case MODE_INDEXED_INDIRECT: address = READW(READ(PC + 1) + X); break;
-    case MODE_INDIRECT: address = READW(READ(PC + 1)); break;
-    case MODE_INDIRECT_INDEXED:
-        address = READW(READ(PC + 1)) + Y;
+    case ACCUMULATOR: address = 0; break;
+    case IMMEDIATE: address = PC + 1; break;
+    case IMPLIED: address = 0; break;
+    case INDEXED_INDIRECT: address = READW_BUG((READ(PC + 1) + X) & 0xff); break;
+    case INDIRECT: address = READW_BUG(READW(PC + 1)); break;
+    case INDIRECT_INDEXED:
+        address = READW_BUG(READ(PC + 1)) + Y;
         page_crossed = PAGE_DIFF(address - Y, address);
         break;
-    case MODE_RELATIVE:
+    case RELATIVE:
         offset = READ(PC + 1);
         address = offset < 0x80 ? PC + 2 + offset : PC + 2 + offset - 0x100;
         break;
-    case MODE_ZERO_PAGE: address = READ(PC + 1); break;
-    case MODE_ZERO_PAGE_X: address = READ(PC + 1) + X; break;
-    case MODE_ZERO_PAGE_Y: address = READ(PC + 1) + Y; break;
+    case ZERO_PAGE: address = READ(PC + 1); break;
+    case ZERO_PAGE_X: address = (READ(PC + 1) + X) & 0xff; break;
+    case ZERO_PAGE_Y: address = (READ(PC + 1) + Y) & 0xff; break;
     }
     if (page_crossed) {
         CYCLES += g_page_cycle[instruction];
@@ -431,8 +495,8 @@ uint8_t cpu_step(cpu_t *cpu) {
 
     // instructions
     PC += g_size[instruction];
-    CYCLES += g_cycle[instruction];
     uint16_t pc = PC;
+    CYCLES += g_cycle[instruction];
     uint8_t value, a, b, c;
     switch (g_opcode_list[instruction]) {
     case ADC: // Add with Carry
@@ -441,16 +505,8 @@ uint8_t cpu_step(cpu_t *cpu) {
         c = C;
         A = a + b + c;
         SET_ZN_FLAG(A);
-        if (((uint16_t)a + (uint16_t)b + (uint16_t)c) > 0xFF) {
-            SET_FLAG(C_FLAG);
-        } else {
-            CLR_FLAG(C_FLAG);
-        }
-        if (((a ^ b) & 0x80) == 0 && ((a ^ A) & 0x80) != 0) {
-            SET_FLAG(V_FLAG);
-        } else {
-            CLR_FLAG(V_FLAG);
-        }
+        TST_FLAG(((uint16_t)a + (uint16_t)b + (uint16_t)c) > 0xFF, C_FLAG);
+        TST_FLAG(((a ^ b) & 0x80) == 0 && ((a ^ A) & 0x80) != 0, V_FLAG);
     case AHX: ASSERT(false); break;
     case ALR: ASSERT(false); break;
     case ANC: ASSERT(false); break;
@@ -460,21 +516,13 @@ uint8_t cpu_step(cpu_t *cpu) {
         break;
     case ARR: ASSERT(false); break;
     case ASL: // Arithmetic Shift Left
-        if (mode == MODE_ACCUMULATOR) {
-            if ((A >> 7) & 1) {
-                SET_FLAG(C_FLAG);
-            } else {
-                CLR_FLAG(C_FLAG);
-            }
+        if (mode == ACCUMULATOR) {
+            TST_FLAG((A >> 7) & 1, C_FLAG);
             A <<= 1;
             SET_ZN_FLAG(A);
         } else {
             value = READ(address);
-            if ((value >> 7) & 1) {
-                SET_FLAG(C_FLAG);
-            } else {
-                CLR_FLAG(C_FLAG);
-            }
+            TST_FLAG((value >> 7) & 1, C_FLAG);
             value <<= 1;
             WRITE(address, value);
             SET_ZN_FLAG(value);
@@ -484,47 +532,43 @@ uint8_t cpu_step(cpu_t *cpu) {
     case BCC: // Branch if Carry Clear
         if (C == 0) {
             PC = address;
-            ADD_BRANCH_CYCLES(address);
+            ADD_BRANCH_CYCLES(pc, address);
         }
         break;
     case BCS: // Branch if Carry Set
         if (C == 1) {
             PC = address;
-            ADD_BRANCH_CYCLES(address);
+            ADD_BRANCH_CYCLES(pc, address);
         }
         break;
     case BEQ: // Branch if Equal
         if (Z == 1) {
             PC = address;
-            ADD_BRANCH_CYCLES(address);
+            ADD_BRANCH_CYCLES(pc, address);
         }
         break;
     case BIT: // Bit Test
         value = READ(address);
-        if ((value >> 6) & 1) {
-            SET_FLAG(V_FLAG);
-        } else {
-            CLR_FLAG(V_FLAG);
-        }
+        TST_FLAG((value >> 6) & 1, V_FLAG);
         SET_Z_FLAG_IF_ZERO(value & A);
         SET_N_FLAG_IF_NEGATIVE(value);
         break;
     case BMI: // Branch if Minus
         if (N == 1) {
             PC = address;
-            ADD_BRANCH_CYCLES(address);
+            ADD_BRANCH_CYCLES(pc, address);
         }
         break;
     case BNE: // Branch if Not Equal
         if (Z == 0) {
             PC = address;
-            ADD_BRANCH_CYCLES(address);
+            ADD_BRANCH_CYCLES(pc, address);
         }
         break;
     case BPL: // Branch if Positive
         if (N == 0) {
             PC = address;
-            ADD_BRANCH_CYCLES(address);
+            ADD_BRANCH_CYCLES(pc, address);
         }
         break;
     case BRK: // Force Interrupt
@@ -536,13 +580,13 @@ uint8_t cpu_step(cpu_t *cpu) {
     case BVC: // Branch if Overflow Clear
         if (V == 0) {
             PC = address;
-            ADD_BRANCH_CYCLES(address);
+            ADD_BRANCH_CYCLES(pc, address);
         }
         break;
     case BVS: // Branch if Overflow Set
         if (V == 1) {
             PC = address;
-            ADD_BRANCH_CYCLES(address);
+            ADD_BRANCH_CYCLES(pc, address);
         }
         break;
     case CLC: // Clear Carry Flag
@@ -614,22 +658,14 @@ uint8_t cpu_step(cpu_t *cpu) {
         c = C;
         A = a - b - (1 - c);
         SET_ZN_FLAG(A);
-        if (((int16_t)a - (int16_t)b - (int16_t)(1 - c)) > 0xFF) {
-            SET_FLAG(C_FLAG);
-        } else {
-            CLR_FLAG(C_FLAG);
-        }
-        if (((a ^ b) & 0x80) == 0 && ((a ^ A) & 0x80) != 0) {
-            SET_FLAG(V_FLAG);
-        } else {
-            CLR_FLAG(V_FLAG);
-        }
+        TST_FLAG(((uint16_t)a - (uint16_t)b - (uint16_t)(1 - c)) >= 0, C_FLAG);
+        TST_FLAG(((a ^ b) & 0x80) != 0 && ((a ^ A) & 0x80) != 0, V_FLAG);
         break;
     case JMP: // Jump
         PC = address;
         break;
     case JSR: // Jump to Subroutine
-        PUSH(PC - 1);
+        PUSHW(PC - 1);
         PC = address;
         break;
     case KIL: ASSERT(false); break;
@@ -653,21 +689,13 @@ uint8_t cpu_step(cpu_t *cpu) {
         SET_ZN_FLAG(Y);
         break;
     case LSR: // Logical Shift Right
-        if (mode == MODE_ACCUMULATOR) {
-            if (A & 1) {
-                SET_FLAG(C_FLAG);
-            } else {
-                CLR_FLAG(C_FLAG);
-            }
+        if (mode == ACCUMULATOR) {
+            TST_FLAG(A & 1, C_FLAG);
             A >>= 1;
             SET_ZN_FLAG(A);
         } else {
             value = READ(address);
-            if (value & 1) {
-                SET_FLAG(C_FLAG);
-            } else {
-                CLR_FLAG(C_FLAG);
-            }
+            TST_FLAG(value & 1, C_FLAG);
             value >>= 1;
             WRITE(address, value);
             SET_ZN_FLAG(value);
@@ -694,21 +722,13 @@ uint8_t cpu_step(cpu_t *cpu) {
         break;
     case RLA: // ROL AND
         c = C;
-        if (mode == MODE_ACCUMULATOR) {
-            if ((A >> 7) & 1) {
-                SET_FLAG(C_FLAG);
-            } else {
-                CLR_FLAG(C_FLAG);
-            }
+        if (mode == ACCUMULATOR) {
+            TST_FLAG((A >> 7) & 1, C_FLAG);
             A = (A << 1) | c;
             SET_ZN_FLAG(A);
         } else {
             value = READ(address);
-            if ((value >> 7) & 1) {
-                SET_FLAG(C_FLAG);
-            } else {
-                CLR_FLAG(C_FLAG);
-            }
+            TST_FLAG((value >> 7) & 1, C_FLAG);
             value = (value << 1) | c;
             WRITE(address, value);
             SET_ZN_FLAG(value);
@@ -718,21 +738,13 @@ uint8_t cpu_step(cpu_t *cpu) {
         break;
     case ROL: // Rotate Left
         c = C;
-        if (mode == MODE_ACCUMULATOR) {
-            if ((A >> 7) & 1) {
-                SET_FLAG(C_FLAG);
-            } else {
-                CLR_FLAG(C_FLAG);
-            }
+        if (mode == ACCUMULATOR) {
+            TST_FLAG((A >> 7) & 1, C_FLAG);
             A = (A << 1) | c;
             SET_ZN_FLAG(A);
         } else {
             value = READ(address);
-            if ((value >> 7) & 1) {
-                SET_FLAG(C_FLAG);
-            } else {
-                CLR_FLAG(C_FLAG);
-            }
+            TST_FLAG((value >> 7) & 1, C_FLAG);
             value = (value << 1) | c;
             WRITE(address, value);
             SET_ZN_FLAG(value);
@@ -740,44 +752,28 @@ uint8_t cpu_step(cpu_t *cpu) {
         break;
     case ROR: // Rotate Right
         c = C;
-        if (mode == MODE_ACCUMULATOR) {
-            if (A & 1) {
-                SET_FLAG(C_FLAG);
-            } else {
-                CLR_FLAG(C_FLAG);
-            }
-            A = (A << 1) | (c << 7);
+        if (mode == ACCUMULATOR) {
+            TST_FLAG(A & 1, C_FLAG);
+            A = (A >> 1) | (c << 7);
             SET_ZN_FLAG(A);
         } else {
             value = READ(address);
-            if (value & 1) {
-                SET_FLAG(C_FLAG);
-            } else {
-                CLR_FLAG(C_FLAG);
-            }
-            value = (value << 1) | (c << 7);
+            TST_FLAG(value & 1, C_FLAG);
+            value = (value >> 1) | (c << 7);
             WRITE(address, value);
             SET_ZN_FLAG(value);
         }
         break;
     case RRA: // ROR ADC
         c = C;
-        if (mode == MODE_ACCUMULATOR) {
-            if (A & 1) {
-                SET_FLAG(C_FLAG);
-            } else {
-                CLR_FLAG(C_FLAG);
-            }
-            A = (A << 1) | (c << 7);
+        if (mode == ACCUMULATOR) {
+            TST_FLAG(A & 1, C_FLAG);
+            A = (A >> 1) | (c << 7);
             SET_ZN_FLAG(A);
         } else {
             value = READ(address);
-            if (value & 1) {
-                SET_FLAG(C_FLAG);
-            } else {
-                CLR_FLAG(C_FLAG);
-            }
-            value = (value << 1) | (c << 7);
+            TST_FLAG(value & 1, C_FLAG);
+            value = (value >> 1) | (c << 7);
             WRITE(address, value);
             SET_ZN_FLAG(value);
         }
@@ -786,16 +782,8 @@ uint8_t cpu_step(cpu_t *cpu) {
         c = C;
         A = a + b + c;
         SET_ZN_FLAG(A);
-        if (((uint16_t)a + (uint16_t)b + (uint16_t)c) > 0xFF) {
-            SET_FLAG(C_FLAG);
-        } else {
-            CLR_FLAG(C_FLAG);
-        }
-        if (((a ^ b) & 0x80) == 0 && ((a ^ A) & 0x80) != 0) {
-            SET_FLAG(V_FLAG);
-        } else {
-            CLR_FLAG(V_FLAG);
-        }
+        TST_FLAG(((uint16_t)a + (uint16_t)b + (uint16_t)c) > 0xFF, C_FLAG);
+        TST_FLAG(((a ^ b) & 0x80) == 0 && ((a ^ A) & 0x80) != 0, V_FLAG);
         break;
     case RTI: // Return from Interrupt
         PS = (POP() & 0xEF) | 0x20;
@@ -811,16 +799,8 @@ uint8_t cpu_step(cpu_t *cpu) {
         c = C;
         A = a - b - (1 - c);
         SET_ZN_FLAG(A);
-        if (((int16_t)a - (int16_t)b - (int16_t)(1 - c)) > 0xFF) {
-            SET_FLAG(C_FLAG);
-        } else {
-            CLR_FLAG(C_FLAG);
-        }
-        if (((a ^ b) & 0x80) == 0 && ((a ^ A) & 0x80) != 0) {
-            SET_FLAG(V_FLAG);
-        } else {
-            CLR_FLAG(V_FLAG);
-        }
+        TST_FLAG((a - b - (1 - c)) >= 0, C_FLAG);
+        TST_FLAG(((a ^ b) & 0x80) != 0 && ((a ^ A) & 0x80) != 0, V_FLAG);
         break;
     case SEC: // Set Carry Flag
         SET_FLAG(C_FLAG);
@@ -834,21 +814,13 @@ uint8_t cpu_step(cpu_t *cpu) {
     case SHX: ASSERT(false); break;
     case SHY: ASSERT(false); break;
     case SLO: // ASL ORA
-        if (mode == MODE_ACCUMULATOR) {
-            if ((A >> 7) & 1) {
-                SET_FLAG(C_FLAG);
-            } else {
-                CLR_FLAG(C_FLAG);
-            }
+        if (mode == ACCUMULATOR) {
+            TST_FLAG((A >> 7) & 1, C_FLAG);
             A <<= 1;
             SET_ZN_FLAG(A);
         } else {
             value = READ(address);
-            if ((value >> 7) & 1) {
-                SET_FLAG(C_FLAG);
-            } else {
-                CLR_FLAG(C_FLAG);
-            }
+            TST_FLAG((value >> 7) & 1, C_FLAG);
             value <<= 1;
             WRITE(address, value);
             SET_ZN_FLAG(value);
@@ -857,21 +829,13 @@ uint8_t cpu_step(cpu_t *cpu) {
         SET_ZN_FLAG(A);
         break;
     case SRE: // LSR EOR
-        if (mode == MODE_ACCUMULATOR) {
-            if (A & 1) {
-                SET_FLAG(C_FLAG);
-            } else {
-                CLR_FLAG(C_FLAG);
-            }
+        if (mode == ACCUMULATOR) {
+            TST_FLAG(A & 1, C_FLAG);
             A >>= 1;
             SET_ZN_FLAG(A);
         } else {
             value = READ(address);
-            if (value & 1) {
-                SET_FLAG(C_FLAG);
-            } else {
-                CLR_FLAG(C_FLAG);
-            }
+            TST_FLAG(value & 1, C_FLAG);
             value >>= 1;
             WRITE(address, value);
             SET_ZN_FLAG(value);
@@ -907,7 +871,6 @@ uint8_t cpu_step(cpu_t *cpu) {
         break;
     case TXS: // Transfer Index X to Stack Pointer
         SP = X;
-        SET_ZN_FLAG(SP);
         break;
     case TYA: // Transfer Index Y to Accumulator
         A = Y;

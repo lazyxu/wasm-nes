@@ -33,6 +33,7 @@ typedef struct {
     bool is_chr_ram;
 } cartridge_t;
 
+cartridge_t *cartridge_init();
 int32_t cartridge_load(cartridge_t *cart, uint8_t *data, uint32_t data_len);
 void cartridge_free(cartridge_t *cart);
 

@@ -18,10 +18,8 @@ typedef struct {
     cpu_t *cpu;
     ppu_t *ppu;
     cartridge_t *cart;
-    uint8_t prg_rom_bank_size;
     uint8_t prg_rom_bank_8000;
     uint8_t prg_rom_bank_c000;
-    uint8_t chr_rom_bank_size;
     uint8_t chr_rom_bank_0000;
     uint8_t chr_rom_bank_1000;
     uint8_t *prgRam;
