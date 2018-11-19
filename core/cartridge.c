@@ -3,7 +3,6 @@
 //
 
 #include "cartridge.h"
-#include "mirror.h"
 
 cartridge_t *cartridge_init() {
     cartridge_t *cart = malloc(sizeof(cartridge_t));
@@ -57,10 +56,12 @@ int32_t cartridge_load(cartridge_t *cart, uint8_t *data, uint32_t data_len) {
     cart->mapper_no = (header->control_2 & 0xf0) | (header->control_1 >> 4);
     DEBUG_MSG("using mapper: %u\n", cart->mapper_no);
 
-    mirror = ((header->control_1 >> 3) & 1) ? FOURSCREEN_MIRRORING : (header->control_1 & 1);
+    cart->mirror = ((header->control_1 >> 2) & 0b10) | (header->control_1 & 1);
 
     // battery-backed RAM
     bool battery = (header->control_1 >> 1) & 1;
+    DEBUG_MSG("battery: %d\n", battery);
+    DEBUG_MSG("trainer: %d\n", header->control_1 & 0b100);
     data = data + sizeof(ines_header_t);
 
     // Following the header is the 512-byte trainer, if one is present,

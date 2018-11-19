@@ -5,6 +5,7 @@
 #ifndef WASM_NES_CARTRIDGE_H
 #define WASM_NES_CARTRIDGE_H
 
+#include "mirror.h"
 #include "port.h"
 
 #define INES_FILE_MAGIC 0x1a53454e
@@ -30,6 +31,7 @@ typedef struct {
     uint8_t *prg_rom;
     uint8_t num_chr_rom_bank; // number of CHR-ROM banks (8KB each)
     uint8_t *chr_rom;
+    mirror_t mirror;
     bool is_chr_ram;
 } cartridge_t;
 

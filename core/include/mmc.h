@@ -7,7 +7,6 @@
 
 #include "cartridge.h"
 #include "cpu.h"
-#include "mmc.h"
 #include "port.h"
 #include "ppu.h"
 

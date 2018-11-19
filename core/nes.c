@@ -33,5 +33,32 @@ int32_t nes_load(nes_t *nes, uint8_t *data, uint32_t data_len) {
     }
     mmc_init(nes->mmc, nes->cart, nes->cpu, nes->ppu);
     cpu_reset(nes->cpu);
+    ppu_reset(nes->ppu);
     return ret;
+}
+
+void step(nes_t *nes) {
+    // DEBUG_MSG("step\n");
+    cpu_t *cpu = nes->cpu;
+    ppu_t *ppu = nes->ppu;
+    apu_t *apu = nes->apu;
+    cpu_step(cpu);
+    apu_step(apu);
+    ppu_step(ppu);
+    ppu_step(ppu);
+    ppu_step(ppu);
+    if (ppu_nmi(ppu)) {
+        cpu_nmi(cpu);
+    }
+}
+
+void step_frame(nes_t *nes) {
+    // DEBUG_MSG("step_frame\n");
+    cpu_t *cpu = nes->cpu;
+    ppu_t *ppu = nes->ppu;
+    uint32_t frame = ppu->frame;
+
+    for (uint32_t frame = ppu->frame; frame == ppu->frame;) {
+        step(nes);
+    }
 }

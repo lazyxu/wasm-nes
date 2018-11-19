@@ -144,6 +144,7 @@ uint8_t cpu_read(struct _nes_t *_nes, uint16_t addr);
 void cpu_write(struct _nes_t *_nes, uint16_t addr, uint8_t val);
 
 void cpu_reset(cpu_t *cpu);
+void cpu_nmi(cpu_t *cpu);
 
 #ifdef TEST_CPU
 int cpu_status(FILE *stream, cpu_t *cpu);

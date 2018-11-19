@@ -78,16 +78,16 @@ const uint8_t g_page_cycle[] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0,
 };
 
+#define RAM (cpu->ram)
+#define CYCLES (cpu->cycles)
+
+/* ---------------------------------------------------- register ---------------------------------------------------- */
 #define PC (cpu->pc)
 #define SP (cpu->sp)
 #define A (cpu->a)
 #define X (cpu->x)
 #define Y (cpu->y)
 #define PS (cpu->ps)
-#define RAM (cpu->ram)
-#define CYCLES (cpu->cycles)
-
-/* ---------------------------------------------------- register ---------------------------------------------------- */
 
 #define C_FLAG (1 << 0)
 #define Z_FLAG (1 << 1)
@@ -165,7 +165,6 @@ const uint8_t g_page_cycle[] = {
     } while (0)
 
 /* ----------------------------------------------------- memory ----------------------------------------------------- */
-#define STACK_TOP 0x100
 
 uint8_t cpu_read(nes_t *nes, uint16_t addr) {
     TRACE_MSG("cpu read: %x\n", addr);
@@ -200,7 +199,7 @@ uint8_t cpu_read(nes_t *nes, uint16_t addr) {
 }
 
 void cpu_write(nes_t *nes, uint16_t addr, uint8_t val) {
-    TRACE_MSG("cpu write: %x <- %x\n", addr, val);
+    DEBUG_MSG("cpu write: %x <- %x\n", addr, val);
     ASSERT(nes != NULL);
     ASSERT(nes->ppu != NULL);
     ASSERT(nes->apu != NULL);
@@ -209,14 +208,15 @@ void cpu_write(nes_t *nes, uint16_t addr, uint8_t val) {
         ASSERT(nes->cpu->ram != NULL);
         nes->cpu->ram[addr & 0x7ff] = val;
     } else if (addr < 0x4000) {
-        ppu_write_register(nes->ppu, 0x2000 + ((addr - 0x2000) & 7), val);
+        DEBUG_MSG("unhandled I/O Registers II write at addr: %X <- %X\n", addr, val);
+        ppu_write_register(nes->ppu, 0x2000 | (addr & 7), val);
     } else if (addr < 0x4020) {
         switch (addr) {
         case 0x4014: ppu_write_register(nes->ppu, addr, val);
         case 0x4015: apu_write_register(nes->apu, addr, val);
         case 0x4016: controller_write(&nes->controller[0], val);
         case 0x4017: controller_write(&nes->controller[1], val);
-        default: DEBUG_MSG("unhandled I/O Registers II write at addr: %X\n", addr);
+        default: DEBUG_MSG("unhandled I/O Registers II write at addr: %X <- %X\n", addr, val);
         }
     } else if (addr < 0x6000) {
         DEBUG_MSG("TODO: I/O registers\n");
@@ -248,6 +248,7 @@ uint16_t cpu_read16bug(cpu_t *cpu, uint16_t addr) {
     return (hi << 8) | lo;
 }
 
+#define STACK_TOP 0x100
 static void push(cpu_t *cpu, uint8_t val) {
     RAM[(SP--) | STACK_TOP] = (val);
 }
@@ -440,7 +441,7 @@ int cpu_status(FILE *stream, cpu_t *cpu) {
 #endif // TEST_CPU
 
 uint8_t cpu_step(cpu_t *cpu) {
-    TRACE_MSG("PC: %X\n", PC);
+    DEBUG_MSG("PC: %X\n", PC);
     if (cpu->stall > 0) {
         cpu->stall--;
         return 1;

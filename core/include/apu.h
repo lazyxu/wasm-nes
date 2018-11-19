@@ -14,4 +14,5 @@ typedef struct {
 uint8_t apu_read_register(void *nes, uint16_t addr);
 void apu_write_register(void *nes, uint16_t addr, uint8_t val);
 
+void apu_step(apu_t *apu);
 #endif // WASM_NES_APU_H

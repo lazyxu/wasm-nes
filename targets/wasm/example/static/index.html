@@ -10,9 +10,12 @@
 <body>
     <h1>Compile C to WebAssembly</h1>
     <p>The test result can be found in console.</p>
+    <canvas id="canvas" width="256" height="240"></canvas>
     <script>
         var nes_load = Module.cwrap("_nes_load", "number", ["array", "number"]);
-        var nes_cpu_step = Module.cwrap("nes_cpu_step", ["number"]);
+        var nes_cpu_step = Module.cwrap("nes_cpu_step", '', ["number"]);
+        var nes_step_frame = Module.cwrap("nes_step_frame", '', []);
+        var nes_set_screen = Module.cwrap("nes_set_screen", '', ["array"]);
 
         function convertBinaryStringToUint8Array(bStr) {
             var i, len = bStr.length, u8_array = new Uint8Array(len);
@@ -23,18 +26,28 @@
         }
 
         setTimeout(() => {
-            fetch("/roms/nestest.nes")
+            fetch("/roms/test.nes")
                 .then(response => {
                     window.r = response;
                     response.arrayBuffer().then(buffer => {
                         let data = new Uint8Array(buffer);
                         let ret = nes_load(data, data.length);
                         console.log(ret);
+
+                        var canvas = document.getElementById('canvas');
+                        var canvasContext = canvas.getContext('2d');
+                        var canvasImageData = canvasContext.getImageData(0, 0, 256, 240);
+                        // Get the canvas this.buffer in 8bit and 32bit
+                        var buf = new ArrayBuffer(canvasImageData.data.length);
+                        var buf8 = new Uint8Array(buf);
+                        console.log(buf8)
+                        nes_set_screen(buf8);
                         if (ret == 0) {
                             setInterval(() => {
-                                let ret = nes_cpu_step();
-                                console.log(ret);
-                            }, 1000);
+                                nes_step_frame();
+                                canvasImageData.data.set(buf8);
+                                canvasContext.putImageData(canvasImageData, 0, 0);
+                            }, 1000 / 30);
                         }
                     })
                 })

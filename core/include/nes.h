@@ -24,5 +24,5 @@ typedef struct _nes_t {
 
 nes_t *nes_init();
 int32_t nes_load(nes_t *nes, uint8_t *data, uint32_t data_len);
-
+void step_frame(nes_t *nes);
 #endif // WASM_NES_NES_H
