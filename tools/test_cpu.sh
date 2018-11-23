@@ -6,7 +6,7 @@ OUTPUT_DIR=${BUILD_DIR}/bin
 
 mkdir -p ${BUILD_DIR} && mkdir -p ${OUTPUT_DIR} && cd ${BUILD_DIR}
 
-cmake -DLOG_LEVEL=${LOG_LEVEL} -DOUTPUT_DIR=${OUTPUT_DIR} -DTEST=CPU ../..
+cmake -DLOG_LEVEL=${LOG_LEVEL} -DOUTPUT_DIR=${OUTPUT_DIR} -DDEBUG=ON ../..
 if [ $? -ne 0 ]; then
     exit -1
 fi

@@ -146,9 +146,9 @@ void cpu_write(struct _nes_t *_nes, uint16_t addr, uint8_t val);
 void cpu_reset(cpu_t *cpu);
 void cpu_nmi(cpu_t *cpu);
 
-#ifdef TEST_CPU
+#ifdef DEBUG
 int cpu_status(FILE *stream, cpu_t *cpu);
-#endif // TEST_CPU
+#endif // DEBUG
 
 uint8_t cpu_step(cpu_t *cpu);
 

@@ -10,15 +10,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef LOG_DEBUG
-#define PRINT_LOG_LEVEL(...)                                                                                           \
-    do {                                                                                                               \
-        printf("LOG LEVEL: DEBUG\n");                                                                                  \
-    } while (0)
-#elif defined(LOG_TRACE)
+#define LOG_OFF 0
+#define LOG_DEBUG 3
+#define LOG_TRACE 4
+
+#if LOG_LEVEL == LOG_TRACE
 #define PRINT_LOG_LEVEL(...)                                                                                           \
     do {                                                                                                               \
         printf("LOG LEVEL: TRACE\n");                                                                                  \
+    } while (0)
+#elif LOG_LEVEL == LOG_DEBUG
+#define PRINT_LOG_LEVEL(...)                                                                                           \
+    do {                                                                                                               \
+        printf("LOG LEVEL: DEBUG\n");                                                                                  \
     } while (0)
 #else
 #define PRINT_LOG_LEVEL(...)
@@ -36,14 +40,14 @@
         ptr = NULL;                                                                                                    \
     } while (0)
 
-#ifdef LOG_OFF
+#if LOG_LEVEL == LOG_OFF
 
 #define ASSERT(...)
 #define DEBUG_MSG(...)
 #define TRACE_MSG(...)
 #define HEX_DUMP(...)
 
-#else // !LOG_OFF
+#else // LOG_LEVEL != LOG_OFF
 
 #include <stdio.h>
 
@@ -53,9 +57,11 @@
         abort();                                                                                                       \
     }
 
+#if LOG_LEVEL >= LOG_DEBUG
 #define DEBUG_MSG printf
+#endif // LOG_LEVEL >= LOG_DEBUG
 
-#ifdef LOG_TRACE
+#if LOG_LEVEL >= LOG_TRACE
 #define TRACE_MSG printf
 #define HEX_DUMP(data, data_len)                                                                                       \
     do {                                                                                                               \
@@ -74,14 +80,14 @@
         }                                                                                                              \
         printf("\n");                                                                                                  \
     } while (0)
-#else
+#else // LOG_LEVEL < LOG_TRACE
 #define TRACE_MSG(...)
 #define HEX_DUMP(...)
-#endif // TRACE
+#endif // LOG_LEVEL >= LOG_TRACE
 
-#endif // LOG_OFF
+#endif // LOG_LEVEL == LOG_OFF
 
-#ifdef TEST_CPU
+#ifdef DEBUG
 #include <stdio.h>
 #endif
 

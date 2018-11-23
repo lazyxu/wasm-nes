@@ -380,7 +380,7 @@ void cpu_reset(cpu_t *cpu) {
     SET_IRQ(INT_NONE);
 }
 
-#ifdef TEST_CPU
+#ifdef DEBUG
 /**
  * print the current CPU state
  */
@@ -438,7 +438,7 @@ int cpu_status(FILE *stream, cpu_t *cpu) {
     ASSERT(false);
     return 0;
 }
-#endif // TEST_CPU
+#endif // DEBUG
 
 uint8_t cpu_step(cpu_t *cpu) {
     DEBUG_MSG("PC: %X\n", PC);
