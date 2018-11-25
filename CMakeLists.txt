@@ -41,9 +41,13 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 
 file(GLOB SOURCE_FILES "core/*.c" "core/mapper/*.c")
 
-include_directories(~/emsdk/emscripten/1.38.16/system/include ./core/include ./core/mapper/include)
+include_directories(./core/include ./core/mapper/include)
 
 if(DEFINED WASM)
+  if(NOT DEFINED ENV{EMSCRIPTEN})
+    message(FATAL_ERROR "not defined environment variable:EMSCRIPTEN")
+  endif()
+  include_directories(ENV{EMSCRIPTEN}/system/include)
   file(GLOB TARGET_FILES "targets/wasm/*.c")
   set(SOURCE_FILES ${SOURCE_FILES} ${TARGET_FILES})
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Os")

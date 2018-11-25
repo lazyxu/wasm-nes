@@ -6,7 +6,7 @@ WASM_STATIC_DIR=${EXAMPLE_DIR}/static
 
 source ~/emsdk/emsdk_env.sh
 mkdir -p build/wasm && cd build/wasm
-cmake -DCMAKE_TOOLCHAIN_FILE=~/emsdk/emscripten/1.38.16/cmake/Modules/Platform/Emscripten.cmake\
+cmake -DCMAKE_TOOLCHAIN_FILE=${EMSCRIPTEN}/cmake/Modules/Platform/Emscripten.cmake\
     -DLOG_LEVEL=${LOG_LEVEL} \
     -DWASM_STATIC_DIR=${WASM_STATIC_DIR} ../..
 if [ $? -ne 0 ]; then
