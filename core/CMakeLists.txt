@@ -1,0 +1,13 @@
+cmake_minimum_required(VERSION 3.7)
+
+set(PROJECT_NAME nes-core)
+project(${PROJECT_NAME} C)
+
+file(GLOB SOURCE_CORE ${CMAKE_CURRENT_SOURCE_DIR}/*.c)
+file(GLOB SOURCE_CORE_MAPPER ${CMAKE_CURRENT_SOURCE_DIR}/mapper/*.c)
+
+set(SOURCE_CORE ${SOURCE_CORE} ${SOURCE_CORE_MAPPER})
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/mapper/include)
+
+add_library(${PROJECT_NAME} STATIC ${SOURCE_CORE})
