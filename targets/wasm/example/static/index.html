@@ -26,7 +26,7 @@
         }
 
         setTimeout(() => {
-            fetch("/roms/test.nes")
+            fetch("/roms/test-roms/Super Mario Bros.nes")
                 .then(response => {
                     window.r = response;
                     response.arrayBuffer().then(buffer => {
@@ -40,13 +40,21 @@
                         // Get the canvas this.buffer in 8bit and 32bit
                         var buf = new ArrayBuffer(canvasImageData.data.length);
                         var buf8 = new Uint8Array(buf);
-                        console.log(buf8)
-                        nes_set_screen(buf8);
                         if (ret == 0) {
-                            setInterval(() => {
+                            var i = 0;
+                            var interval = setInterval(() => {
                                 nes_step_frame();
+                                var ptr = Module._nes_get_screen();
+                                buf8.set(Module.HEAP8.subarray(ptr, ptr + 256 * 240 * 4));
+                                if (buf8[0] !== 1) {
+                                    console.log(buf8);
+                                }
                                 canvasImageData.data.set(buf8);
                                 canvasContext.putImageData(canvasImageData, 0, 0);
+                                i++;
+                                if (i === 1000) {
+                                    clearInterval(interval);
+                                }
                             }, 1000 / 30);
                         }
                     })

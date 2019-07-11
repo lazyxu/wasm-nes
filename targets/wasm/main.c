@@ -11,11 +11,11 @@ uint8_t nes_cpu_step() {
     return cpu_step(g_nes->cpu);
 }
 
+uint32_t *screen = NULL;
 EMSCRIPTEN_KEEPALIVE
-void nes_set_screen(uint8_t *screen) {
-    DEBUG_MSG("nes_set_screen\n");
-    DEBUG_MSG("%X\n", (uint32_t)screen);
-    set_screen((uint32_t)screen);
+uint32_t *nes_get_screen() {
+    DEBUG_MSG("nes_get_screen: %d\n", screen[0]);
+    return screen;
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -32,6 +32,13 @@ int32_t _nes_load(uint8_t *data, uint32_t data_len) {
 int main() {
     DEBUG_MSG("Module wasm-nes loaded.\n");
     PRINT_LOG_LEVEL();
+    screen = malloc(sizeof(uint32_t) * 256 * 240);
+    DEBUG_MSG("screen:%lu", sizeof(uint32_t) * 256 * 240);
+    if (screen == NULL) {
+        return -1;
+    }
+    *screen = 1;
+    set_screen((uintptr_t)&screen);
     g_nes = nes_init();
     return 0;
 }

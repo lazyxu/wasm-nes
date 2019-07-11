@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.7)
 
-set(PROJECT_NAME nes.wasm)
+set(PROJECT_NAME nes)
 project(${PROJECT_NAME})
 
 set(NES_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../..)
@@ -22,3 +22,4 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s ASSERTIONS=2")
 add_definitions(-DWASM)
 
 add_executable(${PROJECT_NAME} ${TARGET_FILES})
+target_link_libraries(${PROJECT_NAME} nes-core)
