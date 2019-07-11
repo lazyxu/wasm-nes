@@ -46,7 +46,7 @@ typedef struct {
 uint8_t ppu_read_register(ppu_t *ppu, uint16_t addr);
 void ppu_write_register(ppu_t *ppu, uint16_t addr, uint8_t val);
 bool ppu_nmi(ppu_t *ppu);
-void set_screen(uint32_t address);
+void set_screen(uintptr_t address);
 
 void ppu_reset(ppu_t *ppu);
 void ppu_step(ppu_t *ppu);

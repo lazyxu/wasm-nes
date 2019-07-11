@@ -11,7 +11,7 @@ extern mapper_t m2;
 // mapper list
 static mapper_t *g_mapper_list[256] = {
     &m0,
-    NULL,
+    &m1,
     &m2,
 };
 

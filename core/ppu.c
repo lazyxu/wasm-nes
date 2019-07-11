@@ -63,10 +63,13 @@ void ppu_write(ppu_t *ppu, uint16_t addr, uint8_t val) {
         ASSERT(nes->mmc->mapper != NULL);
         ASSERT(nes->mmc->mapper->mapper_ppu_write != NULL);
         nes->mmc->mapper->mapper_ppu_write(nes->mmc, addr, val);
+        return;
     } else if (addr < 0x3F00) {
         ppu->name_table[mirror_address(nes, addr)] = val;
+        return;
     } else if (addr < 0x4000) {
         ppu->palette_index[addr & 0x31] = val;
+        return;
     }
     ASSERT(false);
     return;
@@ -387,7 +390,7 @@ void tick(ppu_t *ppu) {
 
 uint32_t *g_screen = NULL;
 
-void set_screen(uint32_t address) {
+void set_screen(uintptr_t address) {
     g_screen = (uint32_t *)address;
     DEBUG_MSG("set_screen: %X\n", g_screen);
 }
