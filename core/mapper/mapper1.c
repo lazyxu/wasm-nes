@@ -70,10 +70,10 @@ static void writeControl(mmc_t *mmc, uint8_t val) {
     control = val;
     chr_mode = (val >> 4) & 1;
     prg_mode = (val >> 2) & 3;
-    mirror_t mirror = val & 3;
-    switch (mirror) {
-    case MIRROR_HORIZONTAL: break;
-    }
+    // mirror_t mirror = val & 3;
+    // switch (mirror) {
+    // case MIRROR_HORIZONTAL: break;
+    // }
     updateOffsets(mmc);
 }
 
@@ -97,7 +97,7 @@ static void writeRegister(mmc_t *mmc, uint16_t addr, uint8_t val) {
 static uint8_t shift_register;
 void mapper_cpu_write(mmc_t *mmc, uint16_t addr, uint8_t val) {
     if (addr >= 0x8000) {
-        if (val & 0x80 == 0x80) {
+        if ((val & 0x80) == 0x80) {
             shift_register = 0x10;
             writeControl(mmc, control | 0x0C);
         } else {

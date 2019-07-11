@@ -180,6 +180,10 @@ uint8_t cpu_read(nes_t *nes, uint16_t addr) {
     } else if (addr < 0x4020) {
         switch (addr) {
         case 0x4014: return ppu_read_register(nes->ppu, addr);
+        case 0x4004:
+        case 0x4005:
+        case 0x4006:
+        case 0x4007:
         case 0x4015: return apu_read_register(nes->apu, addr);
         case 0x4016: return controller_read(&nes->controller[0]);
         case 0x4017: return controller_read(&nes->controller[1]);
@@ -207,21 +211,28 @@ void cpu_write(nes_t *nes, uint16_t addr, uint8_t val) {
         ASSERT(nes->cpu != NULL);
         ASSERT(nes->cpu->ram != NULL);
         nes->cpu->ram[addr & 0x7ff] = val;
+        return;
     } else if (addr < 0x4000) {
-        DEBUG_MSG("unhandled I/O Registers II write at addr: %X <- %X\n", addr, val);
         ppu_write_register(nes->ppu, 0x2000 | (addr & 7), val);
+        return;
     } else if (addr < 0x4020) {
         switch (addr) {
-        case 0x4014: ppu_write_register(nes->ppu, addr, val);
-        case 0x4015: apu_write_register(nes->apu, addr, val);
-        case 0x4016: controller_write(&nes->controller[0], val);
-        case 0x4017: controller_write(&nes->controller[1], val);
-        default: DEBUG_MSG("unhandled I/O Registers II write at addr: %X <- %X\n", addr, val);
+        case 0x4014: ppu_write_register(nes->ppu, addr, val); return;
+        case 0x4004:
+        case 0x4005:
+        case 0x4006:
+        case 0x4007:
+        case 0x4015: apu_write_register(nes->apu, addr, val); return;
+        case 0x4016: controller_write(&nes->controller[0], val); return;
+        case 0x4017: controller_write(&nes->controller[1], val); return;
+        default: DEBUG_MSG("unhandled I/O Registers II write at addr: %X <- %X\n", addr, val); return;
         }
     } else if (addr < 0x6000) {
         DEBUG_MSG("TODO: I/O registers\n");
+        return;
     } else if (addr >= 0x6000) {
         nes->mmc->mapper->mapper_cpu_write(nes->mmc, addr, val);
+        return;
     }
 }
 
@@ -386,11 +397,11 @@ void cpu_reset(cpu_t *cpu) {
  */
 int cpu_status(FILE *stream, cpu_t *cpu) {
     ASSERT(stream != NULL);
-    uint8_t opcode = READ(PC);
-    uint8_t size = g_size[opcode];
-    const char *const _name = g_opcode_names[g_opcode_list[opcode]];
+    uint8_t instruction = READ(PC);
+    uint8_t size = g_size[instruction];
+    const char *const _name = g_opcode_names[g_opcode_list[instruction]];
     const char *name = _name;
-    if (strcmp(_name, "NOP") == 0 && opcode != 0xEA) {
+    if (strcmp(_name, "NOP") == 0 && instruction != 0xEA) {
         name = "*NOP";
     }
     if (strcmp(_name, "LAX") == 0) {
@@ -399,7 +410,7 @@ int cpu_status(FILE *stream, cpu_t *cpu) {
     if (strcmp(_name, "SAX") == 0) {
         name = "*SAX";
     }
-    if (strcmp(_name, "SBC") == 0 && opcode == 0xEB) {
+    if (strcmp(_name, "SBC") == 0 && instruction == 0xEB) {
         name = "*SBC";
     }
     if (strcmp(_name, "DCP") == 0) {
@@ -420,23 +431,84 @@ int cpu_status(FILE *stream, cpu_t *cpu) {
     if (strcmp(_name, "RRA") == 0) {
         name = "*RRA";
     }
+    char hex[9] = {0};
+
     switch (size) {
-    case 1:
-        return fprintf(stream, "%04X  %02X       %4s             A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%3d\n", PC,
-                       opcode, name, A, X, Y, PS, SP, (CYCLES * 3) % 341);
-        break;
-    case 2:
-        return fprintf(stream, "%04X  %02X %02X    %4s             A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%3d\n", PC,
-                       opcode, READ(PC + 1), name, A, X, Y, PS, SP, (CYCLES * 3) % 341);
-        break;
-    case 3:
-        return fprintf(stream, "%04X  %02X %02X %02X %4s             A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%3d\n", PC,
-                       opcode, READ(PC + 1), READ(PC + 2), name, A, X, Y, PS, SP, (CYCLES * 3) % 341);
-        break;
+    case 1: sprintf(hex, "%02X      ", instruction); break;
+    case 2: sprintf(hex, "%02X %02X   ", instruction, READ(PC + 1)); break;
+    case 3: sprintf(hex, "%02X %02X %02X", instruction, READ(PC + 1), READ(PC + 2)); break;
     default: ASSERT(false); break;
     }
-    ASSERT(false);
-    return 0;
+    char operator[27] = {0};
+    sprintf(operator, "                          ");
+    addressing_mode_t mode = g_mode[instruction];
+    uint16_t address;
+    bool page_crossed;
+    uint8_t offset;
+    switch (mode) {
+    case ABSOLUTE:
+        address = READW(PC + 1);
+        if (strcmp(_name, "JSR") == 0 || strcmp(_name, "JMP") == 0) {
+            sprintf(operator, "$%04X                     ", address);
+        } else {
+            sprintf(operator, "$%04X = %02X                ", address, READ(address));
+        }
+        break;
+    case ABSOLUTE_X:
+        address = READW(PC + 1) + X;
+        page_crossed = PAGE_DIFF(address - X, address);
+        sprintf(operator, "$%04X,X @ %04X = %02X       ", READW(PC + 1), address, READ(address));
+        break;
+    case ABSOLUTE_Y:
+        address = READW(PC + 1) + Y;
+        page_crossed = PAGE_DIFF(address - Y, address);
+        sprintf(operator, "$%04X,Y @ %04X = %02X       ", READW(PC + 1), address, READ(address));
+        break;
+    case ACCUMULATOR:
+        address = 0;
+        sprintf(operator, "A                         ");
+        break;
+    case IMMEDIATE:
+        address = PC + 1;
+        sprintf(operator, "#$%02X                      ", READ(address));
+        break;
+    case IMPLIED: address = 0; break;
+    case INDEXED_INDIRECT:
+        address = READW_BUG((READ(PC + 1) + X) & 0xff);
+        sprintf(operator, "($%02X,X) @ %02X = %04X = %02X  ", READ(PC + 1), (READ(PC + 1) + X) & 0xff, address,
+                READ(address));
+        break;
+    case INDIRECT:
+        address = READW_BUG(READW(PC + 1));
+        sprintf(operator, "($%04X) = %04X            ", READW(PC + 1), address);
+        break;
+    case INDIRECT_INDEXED:
+        address = READW_BUG(READ(PC + 1)) + Y;
+        page_crossed = PAGE_DIFF(address - Y, address);
+        sprintf(operator, "($%02X),Y = %04X @ %04X = %02X", READ(PC + 1), READW_BUG(READ(PC + 1)), address,
+                READ(address));
+        break;
+    case RELATIVE:
+        offset = READ(PC + 1);
+        address = offset < 0x80 ? PC + 2 + offset : PC + 2 + offset - 0x100;
+        sprintf(operator, "$%04X                     ", address);
+        break;
+    case ZERO_PAGE:
+        address = READ(PC + 1);
+        sprintf(operator, "$%02X = %02X                  ", address, READ(address));
+        break;
+    case ZERO_PAGE_X:
+        address = (READ(PC + 1) + X) & 0xff;
+        sprintf(operator, "$%02X,X @ %02X = %02X           ", READ(PC + 1), address, READ(address));
+        break;
+    case ZERO_PAGE_Y:
+        address = (READ(PC + 1) + Y) & 0xff;
+        sprintf(operator, "$%02X,Y @ %02X = %02X           ", READ(PC + 1), address, READ(address));
+        break;
+    }
+    // printf("%s", operator);
+    return fprintf(stream, "%04X  %s %4s %s  A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%3d\n", PC, hex, name, operator, A,
+                   X, Y, PS, SP,(CYCLES * 3) % 341);
 }
 #endif // DEBUG
 
@@ -508,14 +580,14 @@ uint8_t cpu_step(cpu_t *cpu) {
         SET_ZN_FLAG(A);
         TST_FLAG(((uint16_t)a + (uint16_t)b + (uint16_t)c) > 0xFF, C_FLAG);
         TST_FLAG(((a ^ b) & 0x80) == 0 && ((a ^ A) & 0x80) != 0, V_FLAG);
-    case AHX: ASSERT(false); break;
-    case ALR: ASSERT(false); break;
-    case ANC: ASSERT(false); break;
+    case AHX: DEBUG_MSG("unoffical opcode: AHX\n"); break;
+    case ALR: DEBUG_MSG("unoffical opcode: ALR\n"); break;
+    case ANC: DEBUG_MSG("unoffical opcode: ANC\n"); break;
     case AND: // Logical AND
         A = A & READ(address);
         SET_ZN_FLAG(A);
         break;
-    case ARR: ASSERT(false); break;
+    case ARR: DEBUG_MSG("unoffical opcode: ARR\n"); break;
     case ASL: // Arithmetic Shift Left
         if (mode == ACCUMULATOR) {
             TST_FLAG((A >> 7) & 1, C_FLAG);
@@ -529,7 +601,7 @@ uint8_t cpu_step(cpu_t *cpu) {
             SET_ZN_FLAG(value);
         }
         break;
-    case AXS: ASSERT(false); break;
+    case AXS: DEBUG_MSG("unoffical opcode: AXS\n"); break;
     case BCC: // Branch if Carry Clear
         if (C == 0) {
             PC = address;
@@ -669,8 +741,8 @@ uint8_t cpu_step(cpu_t *cpu) {
         PUSHW(PC - 1);
         PC = address;
         break;
-    case KIL: ASSERT(false); break;
-    case LAS: ASSERT(false); break;
+    case KIL: DEBUG_MSG("unoffical opcode: KIL\n"); break;
+    case LAS: DEBUG_MSG("unoffical opcode: LAS\n"); break;
     case LAX:
         value = READ(address);
         A = value;
@@ -812,8 +884,8 @@ uint8_t cpu_step(cpu_t *cpu) {
     case SEI: // Set Interrupt Disable
         SET_FLAG(I_FLAG);
         break;
-    case SHX: ASSERT(false); break;
-    case SHY: ASSERT(false); break;
+    case SHX: DEBUG_MSG("unoffical opcode: SHX\n"); break;
+    case SHY: DEBUG_MSG("unoffical opcode: SHY\n"); break;
     case SLO: // ASL ORA
         if (mode == ACCUMULATOR) {
             TST_FLAG((A >> 7) & 1, C_FLAG);
@@ -853,7 +925,7 @@ uint8_t cpu_step(cpu_t *cpu) {
     case STY: // Store Y Register
         WRITE(address, Y);
         break;
-    case TAS: ASSERT(false); break;
+    case TAS: DEBUG_MSG("unoffical opcode: TAS\n"); break;
     case TAX: // Transfer Accumulator to X
         X = A;
         SET_ZN_FLAG(X);
@@ -877,7 +949,7 @@ uint8_t cpu_step(cpu_t *cpu) {
         A = Y;
         SET_ZN_FLAG(A);
         break;
-    case XAA: ASSERT(false); break;
+    case XAA: DEBUG_MSG("unoffical opcode: XAA\n"); break;
     }
     return CYCLES - cycles;
 }

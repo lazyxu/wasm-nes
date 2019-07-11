@@ -114,6 +114,7 @@ typedef enum {
 
 #undef OPCODE
 
+#ifdef DEBUG
 #define OPCODE(arg1) #arg1,
 /**
  * Names of the opcodes.
@@ -124,6 +125,7 @@ static const char * const g_opcode_names[] =
 };
 
 #undef OPCODE
+#endif // DEBUG
 
 typedef struct {
     struct _nes_t *nes;
