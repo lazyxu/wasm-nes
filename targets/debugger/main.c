@@ -6,6 +6,9 @@
 #include <unistd.h>
 #include "cJSON/cJSON.h"
 
+#include "command.h"
+#include "dbg-nes.h"
+
 #define KGRN "\033[0;32;32m"
 #define KCYN "\033[0;36m"
 #define KRED "\033[0;32;31m"
@@ -75,6 +78,7 @@ struct per_session_data {
 };
 
 int main(void) {
+    dbg_nes_init();
     // server url will usd port 5000
     int port = 5000;
     const char *interface = NULL;
