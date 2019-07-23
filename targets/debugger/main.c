@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "cJSON/cJSON.h"
 
 #define KGRN "\033[0;32;32m"
 #define KCYN "\033[0;36m"
@@ -20,27 +21,29 @@ static void INT_HANDLER(int signo) {
     destroy_flag = 0;
 }
 
-/* *
- * websocket_write_back: write the string data to the destination wsi.
- */
-int websocket_write_back(struct lws *wsi_in, char *str, int len) {
+int ws_send(struct lws *wsi, const char *str) {
+    size_t len = strlen(str);
+    unsigned char *out = (unsigned char *)malloc(sizeof(unsigned char) *
+                                  (LWS_SEND_BUFFER_PRE_PADDING + len + LWS_SEND_BUFFER_POST_PADDING));
+    /* setup the buffer */
+    memcpy(out + LWS_SEND_BUFFER_PRE_PADDING, str, len);
+    /* write out */
+    int n = lws_write(wsi, out + LWS_SEND_BUFFER_PRE_PADDING, len, LWS_WRITE_TEXT);
+    /* free the buffer */
+    free(out);
+    return n;
+}
+
+int websocket_on_receive(struct lws *wsi_in, char *str, int len) {
     if (str == NULL || wsi_in == NULL)
         return -1;
-
-    int n;
-    unsigned char *out = NULL;
-
-    out = (unsigned char *)malloc(sizeof(unsigned char) *
-                                  (LWS_SEND_BUFFER_PRE_PADDING + len + LWS_SEND_BUFFER_POST_PADDING));
-    //* setup the buffer*/
-    memcpy(out + LWS_SEND_BUFFER_PRE_PADDING, str, len);
-    //* write out*/
-    n = lws_write(wsi_in, out + LWS_SEND_BUFFER_PRE_PADDING, len, LWS_WRITE_TEXT);
-
-    printf(KBLU "[websocket_write_back] %s\n" RESET, str);
-    //* free the buffer*/
-    free(out);
-
+    cJSON *in = cJSON_Parse(str);
+    printf("%s\n", cJSON_Print(in));
+    cJSON *json = cJSON_CreateObject();
+    cJSON_AddStringToObject(json, "topic", "test");
+    printf("%s\n", cJSON_Print(json));
+    int n = ws_send(wsi_in, cJSON_PrintUnformatted(json));
+    cJSON_free(json);
     return n;
 }
 
@@ -52,10 +55,11 @@ static int ws_service_callback(struct lws *wsi, enum lws_callback_reasons reason
 
     //* If receive a data from client*/
     case LWS_CALLBACK_RECEIVE:
-        printf(KCYN_L "[Main Service] Server recvived:%s - %d\n" RESET, (char *)in, len);
+        ((char *)in)[len] = 0;
+        printf(KCYN_L "[Main Service] Server recvived:%s - %zu\n" RESET, (char *)in, len);
 
         //* echo back to client*/
-        websocket_write_back(wsi, (char *)in, len);
+        websocket_on_receive(wsi, (char *)in, len);
 
         break;
     case LWS_CALLBACK_CLOSED: printf(KYEL "[Main Service] Client close.\n" RESET); break;

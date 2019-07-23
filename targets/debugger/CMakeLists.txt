@@ -5,6 +5,9 @@ project(${PROJECT_NAME})
 
 include_directories(/usr/local/include)
 include_directories(${LWS_OPENSSL_INCLUDE_DIRS})
+include_directories(cJSON)
+
+add_subdirectory(cJSON)
 
 file(GLOB NATIVE_SOURCE_FILES "*.c")
 
@@ -12,3 +15,4 @@ add_executable(${PROJECT_NAME} ${NATIVE_SOURCE_FILES})
 
 target_link_libraries(${PROJECT_NAME} ${LWS_OPENSSL_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} /usr/local/lib/libwebsockets.dylib)
+target_link_libraries(${PROJECT_NAME} cjson)
