@@ -29,10 +29,11 @@
 #endif
 
 #define EOK 0
-#define EINVALID_ARGUMENT -1
-#define EINVALID_INES_HEADER -2
-#define EINVALID_INES_CONTENT -3
-#define EINVALID_INES_END -4
+#define EERROR -1
+#define EINVALID_ARGUMENT -2
+#define EINVALID_INES_HEADER -3
+#define EINVALID_INES_CONTENT -4
+#define EINVALID_INES_END -5
 
 #define FREE(ptr)                                                                                                      \
     do {                                                                                                               \

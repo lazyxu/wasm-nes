@@ -1,10 +1,11 @@
-#include <libwebsockets.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "cJSON/cJSON.h"
+#include <libwebsockets.h>
 
 #include "command.h"
 #include "dbg-nes.h"
@@ -27,7 +28,7 @@ static void INT_HANDLER(int signo) {
 int ws_send(struct lws *wsi, const char *str) {
     size_t len = strlen(str);
     unsigned char *out = (unsigned char *)malloc(sizeof(unsigned char) *
-                                  (LWS_SEND_BUFFER_PRE_PADDING + len + LWS_SEND_BUFFER_POST_PADDING));
+                                                 (LWS_SEND_BUFFER_PRE_PADDING + len + LWS_SEND_BUFFER_POST_PADDING));
     /* setup the buffer */
     memcpy(out + LWS_SEND_BUFFER_PRE_PADDING, str, len);
     /* write out */
@@ -42,11 +43,19 @@ int websocket_on_receive(struct lws *wsi_in, char *str, int len) {
         return -1;
     cJSON *in = cJSON_Parse(str);
     printf("%s\n", cJSON_Print(in));
-    cJSON *json = cJSON_CreateObject();
-    cJSON_AddStringToObject(json, "topic", "test");
-    printf("%s\n", cJSON_Print(json));
-    int n = ws_send(wsi_in, cJSON_PrintUnformatted(json));
-    cJSON_free(json);
+    char *topic = cJSON_GetStringValue(cJSON_GetObjectItem(in, "topic"));
+    cJSON *payload = cJSON_GetObjectItem(in, "payload");
+    cJSON *response = cJSON_CreateObject();
+    if (strcmp(topic, "romlist") == 0) {
+        cJSON_AddStringToObject(response, "topic", topic);
+        get_rom_list(response);
+    }
+    if (strcmp(topic, "loadrom") == 0) {
+        dbg_nes_load_file(response, cJSON_GetStringValue(payload));
+    }
+    printf("%s\n", cJSON_Print(response));
+    int n = ws_send(wsi_in, cJSON_PrintUnformatted(response));
+    cJSON_free(response);
     return n;
 }
 

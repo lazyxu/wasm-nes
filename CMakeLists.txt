@@ -3,10 +3,6 @@ cmake_minimum_required(VERSION 3.7)
 set(PROJECT_NAME nes)
 project(${PROJECT_NAME} C)
 
-if(DEFINED TEST AND NOT DEFINED WASM)
-  add_definitions(-DTEST)
-endif()
-
 if(NOT DEFINED LOG_LEVEL)
   if(DEFINED DEBUG AND "${DEBUG}" STREQUAL "ON")
     set(LOG_LEVEL 3)
@@ -24,17 +20,21 @@ else()
     message(FATAL_ERROR "Invalid LOG_LEVEL ${LOG_LEVEL}, excepted TRACE, DEBUG or OFF!")
   endif()
 endif()
-add_definitions(-DLOG_LEVEL=${LOG_LEVEL})
+set(NES_DEFINITIONS "${NES_DEFINITIONS} -DLOG_LEVEL=${LOG_LEVEL}")
 
 if(DEFINED DEBUG AND "${DEBUG}" STREQUAL "ON")
-  add_definitions(-DDEBUG)
+  set(NES_DEFINITIONS "${NES_DEFINITIONS} -DDEBUG")
 else()
   set(DEBUG "OFF")
 endif()
 
 message(STATUS "SYSTEM                    " ${CMAKE_SYSTEM_NAME})
 message(STATUS "COMPILER                  " ${CMAKE_C_COMPILER})
+
 message(STATUS "LOG_LEVEL                 " ${LOG_LEVEL})
 message(STATUS "DEBUG                     " ${DEBUG})
+message(STATUS "NES_DEFINITIONS           " ${NES_DEFINITIONS})
+
+set_property(GLOBAL PROPERTY NES_DEFINITIONS ${NES_DEFINITIONS})
 
 add_subdirectory(core)

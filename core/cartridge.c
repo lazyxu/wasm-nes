@@ -96,9 +96,9 @@ int32_t cartridge_load(cartridge_t *cart, uint8_t *data, uint32_t data_len) {
     return EOK;
 }
 
-void cartridge_free(cartridge_t *cart) {
-    ASSERT(cart != NULL);
-    FREE(cart->trainer);
-    FREE(cart->prg_rom);
-    FREE(cart->chr_rom);
+void cartridge_free(cartridge_t **cart) {
+    ASSERT((*cart) != NULL);
+    FREE((*cart)->trainer);
+    FREE((*cart)->prg_rom);
+    FREE((*cart)->chr_rom);
 }

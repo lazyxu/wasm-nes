@@ -1,6 +1,6 @@
 # sh targets/debugger/build.sh
 
-SERVICE_NAME=./build/debugger/nes
+SERVICE_NAME=./nes
 # stop
 P_ID=`ps -ef | grep -w "$SERVICE_NAME" | grep -v "grep" | awk '{print $2}'`
 if [ -z "$P_ID" ]; then

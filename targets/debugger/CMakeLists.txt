@@ -14,6 +14,11 @@ add_subdirectory(${NES_ROOT_DIR} nes-lib)
 
 file(GLOB NATIVE_SOURCE_FILES "*.c")
 
+get_property(NES_DEFINITIONS GLOBAL PROPERTY NES_DEFINITIONS)
+message(STATUS "NES_DEFINITIONS           " ${NES_DEFINITIONS})
+
+add_definitions(${NES_DEFINITIONS})
+
 add_executable(${PROJECT_NAME} ${NATIVE_SOURCE_FILES})
 
 target_link_libraries(${PROJECT_NAME} ${LWS_OPENSSL_LIBRARIES})
