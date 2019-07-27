@@ -114,19 +114,6 @@ typedef enum {
 
 #undef OPCODE
 
-#ifdef DEBUG
-#define OPCODE(arg1) #arg1,
-/**
- * Names of the opcodes.
- */
-static const char * const g_opcode_names[] =
-{
-  OPCODE_LIST
-};
-
-#undef OPCODE
-#endif // DEBUG
-
 typedef struct {
     struct _nes_t *nes;
     uint16_t pc;
@@ -142,6 +129,27 @@ typedef struct {
     uint16_t stall;
 } cpu_t;
 
+#ifdef DEBUG
+#define OPCODE(arg1) #arg1,
+/**
+ * Names of the opcodes.
+ */
+static const char * const g_opcode_names[] =
+{
+  OPCODE_LIST
+};
+uint8_t cpu_disassembly(cpu_t *cpu, uint16_t pc, char **hex, char **opcode, char **opdata);
+
+#undef OPCODE
+#endif // DEBUG
+
+// interrupt
+#define NMI_VECTOR 0xFFFA
+#define RST_VECTOR 0xFFFC
+#define IRQ_VECTOR 0xFFFE
+
+uint16_t cpu_read16(cpu_t *cpu, uint16_t addr);
+uint16_t cpu_read16bug(cpu_t *cpu, uint16_t addr);
 uint8_t cpu_read(struct _nes_t *_nes, uint16_t addr);
 void cpu_write(struct _nes_t *_nes, uint16_t addr, uint8_t val);
 

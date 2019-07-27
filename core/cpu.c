@@ -311,9 +311,6 @@ static uint16_t pop16(cpu_t *cpu) {
     } while (0)
 
 /* --------------------------------------------------- interrupt ---------------------------------------------------- */
-#define NMI_VECTOR 0xFFFA
-#define RST_VECTOR 0xFFFC
-#define IRQ_VECTOR 0xFFFE
 
 #define SET_IRQ(irq)                                                                                                   \
     do {                                                                                                               \
@@ -392,13 +389,7 @@ void cpu_reset(cpu_t *cpu) {
 }
 
 #ifdef DEBUG
-/**
- * print the current CPU state
- */
-int cpu_status(FILE *stream, cpu_t *cpu) {
-    ASSERT(stream != NULL);
-    uint8_t instruction = READ(PC);
-    uint8_t size = g_size[instruction];
+static char *get_opcode(uint8_t instruction) {
     const char *const _name = g_opcode_names[g_opcode_list[instruction]];
     const char *name = _name;
     if (strcmp(_name, "NOP") == 0 && instruction != 0xEA) {
@@ -431,16 +422,25 @@ int cpu_status(FILE *stream, cpu_t *cpu) {
     if (strcmp(_name, "RRA") == 0) {
         name = "*RRA";
     }
-    char hex[9] = {0};
-
-    switch (size) {
+    return name;
+}
+#define HEX_MAX_LEN 9
+static char *get_hex(cpu_t *cpu, uint8_t instruction) {
+    char *hex = malloc(HEX_MAX_LEN);
+    memset(hex, 0, HEX_MAX_LEN);
+    switch (g_size[instruction]) {
     case 1: sprintf(hex, "%02X      ", instruction); break;
     case 2: sprintf(hex, "%02X %02X   ", instruction, READ(PC + 1)); break;
     case 3: sprintf(hex, "%02X %02X %02X", instruction, READ(PC + 1), READ(PC + 2)); break;
     default: ASSERT(false); break;
     }
-    char operator[27] = {0};
-    sprintf(operator, "                          ");
+    return hex;
+}
+#define OPDATA_MAX_LEN 27
+static char *get_opdata(cpu_t *cpu, char *opcode, uint8_t instruction, bool exec) {
+    char *opdata = malloc(OPDATA_MAX_LEN);
+    memset(opdata, 0, OPDATA_MAX_LEN);
+    sprintf(opdata, "                          ");
     addressing_mode_t mode = g_mode[instruction];
     uint16_t address;
     bool page_crossed;
@@ -448,67 +448,128 @@ int cpu_status(FILE *stream, cpu_t *cpu) {
     switch (mode) {
     case ABSOLUTE:
         address = READW(PC + 1);
-        if (strcmp(_name, "JSR") == 0 || strcmp(_name, "JMP") == 0) {
-            sprintf(operator, "$%04X                     ", address);
+        if (exec) {
+            if (strcmp(opcode, "JSR") == 0 || strcmp(opcode, "JMP") == 0) {
+                sprintf(opdata, "$%04X                     ", address);
+            } else {
+                sprintf(opdata, "$%04X = %02X                ", address, READ(address));
+            }
         } else {
-            sprintf(operator, "$%04X = %02X                ", address, READ(address));
+            sprintf(opdata, "$%04X", address);
         }
         break;
     case ABSOLUTE_X:
-        address = READW(PC + 1) + X;
-        page_crossed = PAGE_DIFF(address - X, address);
-        sprintf(operator, "$%04X,X @ %04X = %02X       ", READW(PC + 1), address, READ(address));
+        if (exec) {
+            address = READW(PC + 1) + X;
+            page_crossed = PAGE_DIFF(address - X, address);
+            sprintf(opdata, "$%04X,X @ %04X = %02X       ", READW(PC + 1), address, READ(address));
+        } else {
+            sprintf(opdata, "$%04X,X", READW(PC + 1));
+        }
         break;
     case ABSOLUTE_Y:
-        address = READW(PC + 1) + Y;
-        page_crossed = PAGE_DIFF(address - Y, address);
-        sprintf(operator, "$%04X,Y @ %04X = %02X       ", READW(PC + 1), address, READ(address));
+        if (exec) {
+            address = READW(PC + 1) + Y;
+            page_crossed = PAGE_DIFF(address - Y, address);
+            sprintf(opdata, "$%04X,Y @ %04X = %02X       ", READW(PC + 1), address, READ(address));
+        } else {
+            sprintf(opdata, "$%04X,Y", READW(PC + 1));
+        }
         break;
     case ACCUMULATOR:
         address = 0;
-        sprintf(operator, "A                         ");
+        sprintf(opdata, "A                         ");
         break;
     case IMMEDIATE:
         address = PC + 1;
-        sprintf(operator, "#$%02X                      ", READ(address));
+        sprintf(opdata, "#$%02X                      ", READ(address));
         break;
     case IMPLIED: address = 0; break;
     case INDEXED_INDIRECT:
-        address = READW_BUG((READ(PC + 1) + X) & 0xff);
-        sprintf(operator, "($%02X,X) @ %02X = %04X = %02X  ", READ(PC + 1), (READ(PC + 1) + X) & 0xff, address,
-                READ(address));
+        if (exec) {
+            address = READW_BUG((READ(PC + 1) + X) & 0xff);
+            sprintf(opdata, "($%02X,X) @ %02X = %04X = %02X  ", READ(PC + 1), (READ(PC + 1) + X) & 0xff, address,
+                    READ(address));
+        } else {
+            sprintf(opdata, "($%02X,X)", READ(PC + 1));
+        }
         break;
     case INDIRECT:
-        address = READW_BUG(READW(PC + 1));
-        sprintf(operator, "($%04X) = %04X            ", READW(PC + 1), address);
+        if (exec) {
+            address = READW_BUG(READW(PC + 1));
+            sprintf(opdata, "($%04X) = %04X            ", READW(PC + 1), address);
+        } else {
+            sprintf(opdata, "($%04X)", READW(PC + 1));
+        }
         break;
     case INDIRECT_INDEXED:
-        address = READW_BUG(READ(PC + 1)) + Y;
-        page_crossed = PAGE_DIFF(address - Y, address);
-        sprintf(operator, "($%02X),Y = %04X @ %04X = %02X", READ(PC + 1), READW_BUG(READ(PC + 1)), address,
-                READ(address));
+        if (exec) {
+            address = READW_BUG(READ(PC + 1)) + Y;
+            page_crossed = PAGE_DIFF(address - Y, address);
+            sprintf(opdata, "($%02X),Y = %04X @ %04X = %02X", READ(PC + 1), READW_BUG(READ(PC + 1)), address,
+                    READ(address));
+        } else {
+            sprintf(opdata, "($%02X),Y", READ(PC + 1));
+        }
         break;
     case RELATIVE:
         offset = READ(PC + 1);
         address = offset < 0x80 ? PC + 2 + offset : PC + 2 + offset - 0x100;
-        sprintf(operator, "$%04X                     ", address);
+        sprintf(opdata, "$%04X                     ", address);
         break;
     case ZERO_PAGE:
-        address = READ(PC + 1);
-        sprintf(operator, "$%02X = %02X                  ", address, READ(address));
+        if (exec) {
+            address = READ(PC + 1);
+            sprintf(opdata, "$%02X = %02X                  ", address, READ(address));
+        } else {
+            sprintf(opdata, "$%02X", address);
+        }
         break;
     case ZERO_PAGE_X:
-        address = (READ(PC + 1) + X) & 0xff;
-        sprintf(operator, "$%02X,X @ %02X = %02X           ", READ(PC + 1), address, READ(address));
+        if (exec) {
+            address = (READ(PC + 1) + X) & 0xff;
+            sprintf(opdata, "$%02X,X @ %02X = %02X           ", READ(PC + 1), address, READ(address));
+        } else {
+            sprintf(opdata, "$%02X,X", READ(PC + 1));
+        }
         break;
     case ZERO_PAGE_Y:
-        address = (READ(PC + 1) + Y) & 0xff;
-        sprintf(operator, "$%02X,Y @ %02X = %02X           ", READ(PC + 1), address, READ(address));
+        if (exec) {
+            address = (READ(PC + 1) + Y) & 0xff;
+            sprintf(opdata, "$%02X,Y @ %02X = %02X           ", READ(PC + 1), address, READ(address));
+        } else {
+            sprintf(opdata, "$%02X,Y", READ(PC + 1));
+        }
         break;
     }
-    // printf("%s", operator);
-    return fprintf(stream, "%04X  %s %4s %s  A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%3d\n", PC, hex, name, operator, A,
-                   X, Y, PS, SP,(CYCLES * 3) % 341);
+    return opdata;
+}
+
+uint8_t cpu_disassembly(cpu_t *cpu, uint16_t pc, char **hex, char **opcode, char **opdata) {
+    uint16_t backup_pc = cpu->pc;
+    cpu->pc = pc;
+    uint8_t instruction = READ(pc);
+    *opcode = get_opcode(instruction);
+    *hex = get_hex(cpu, instruction);
+    *opdata = get_opdata(cpu, opcode, instruction, false);
+    cpu->pc = backup_pc;
+    return g_size[instruction];
+}
+
+/**
+ * print the current CPU state
+ */
+int cpu_status(FILE *stream, cpu_t *cpu) {
+    ASSERT(stream != NULL);
+    uint8_t instruction = READ(PC);
+    const char *opcode = get_opcode(instruction);
+    const char *hex = get_hex(cpu, instruction);
+    const char *opdata = get_opdata(cpu, opcode, instruction, true);
+    // printf("%s", opdata);
+    int ret = fprintf(stream, "%04X  %s %4s %s  A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%3d\n", PC, hex, opcode, opdata,
+                      A, X, Y, PS, SP, (CYCLES * 3) % 341);
+    free(hex);
+    return ret;
 }
 #endif // DEBUG
 

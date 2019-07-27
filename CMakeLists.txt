@@ -35,6 +35,7 @@ message(STATUS "LOG_LEVEL                 " ${LOG_LEVEL})
 message(STATUS "DEBUG                     " ${DEBUG})
 message(STATUS "NES_DEFINITIONS           " ${NES_DEFINITIONS})
 
+add_definitions(${NES_DEFINITIONS})
 set_property(GLOBAL PROPERTY NES_DEFINITIONS ${NES_DEFINITIONS})
 
 add_subdirectory(core)

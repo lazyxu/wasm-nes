@@ -1,9 +1,10 @@
 #include <stdio.h>
 
+#include "cpu.h"
+#include "mirror.h"
 #include "nes.h"
 #include "port.h"
 #include "ppu.h"
-#include "mirror.h"
 
 static nes_t *g_nes = NULL;
 uint32_t *screen = NULL;
@@ -73,4 +74,47 @@ void dbg_nes_load_file(cJSON *response, const char *filename) {
         cJSON_AddStringToObject(nesinfo, "mirror", get_mirror_name(g_nes->cart->mirror));
         printf("done!\n");
     }
+}
+
+void dbg_cpu_disassembly(cJSON *response) {
+    cJSON_AddArrayToObject(response, "instructions");
+    cJSON *instructions = cJSON_GetObjectItem(response, "instructions");
+    char *hex = NULL;
+    char *opcode = NULL;
+    char *opdata = NULL;
+    uint16_t pc = cpu_read16(g_nes->cpu, RST_VECTOR);
+    while (pc < RST_VECTOR) {
+        pc += cpu_disassembly(g_nes->cpu, pc, &hex, &opcode, &opdata);
+        char pc_s[5] = {0};
+        sprintf(pc_s, "%4X", pc);
+        cJSON *instruction = cJSON_CreateObject();
+        cJSON_AddStringToObject(instruction, "address", pc_s);
+        cJSON_AddStringToObject(instruction, "hex", hex);
+        cJSON_AddStringToObject(instruction, "opcode", opcode);
+        cJSON_AddStringToObject(instruction, "opdata", opdata);
+        cJSON_AddItemToArray(instructions, instruction);
+    }
+}
+
+void dbg_cpu_registers(cJSON *response) {
+    cJSON_AddObjectToObject(response, "registers");
+    cJSON *registers = cJSON_GetObjectItem(response, "registers");
+    char pc[5] = {0};
+    sprintf(pc, "%4X", g_nes->cpu->pc);
+    cJSON_AddStringToObject(registers, "PC", pc);
+    char a[3] = {0};
+    sprintf(a, "%2X", g_nes->cpu->a);
+    cJSON_AddStringToObject(registers, "A", a);
+    char x[3] = {0};
+    sprintf(x, "%2X", g_nes->cpu->x);
+    cJSON_AddStringToObject(registers, "X", x);
+    char y[3] = {0};
+    sprintf(y, "%2X", g_nes->cpu->y);
+    cJSON_AddStringToObject(registers, "Y", y);
+    char sp[3] = {0};
+    sprintf(sp, "%2X", g_nes->cpu->sp);
+    cJSON_AddStringToObject(registers, "SP", sp);
+    char p[3] = {0};
+    sprintf(p, "%2X", g_nes->cpu->ps);
+    cJSON_AddStringToObject(registers, "P", p);
 }
