@@ -51,12 +51,12 @@ int websocket_on_receive(struct lws *wsi_in, char *str, int len) {
         get_rom_list(response);
     } else if (strcmp(topic, "loadrom") == 0) {
         dbg_nes_load_file(response, cJSON_GetStringValue(payload));
-    } else if (strcmp(topic, "cpu_instructions") ==0) {
+    } else if (strcmp(topic, "cpu_instructions") == 0) {
         cJSON_AddStringToObject(response, "topic", topic);
         dbg_cpu_disassembly(response);
-    } else if (strcmp(topic, "cpu_registers") ==0) {
+    } else if (strcmp(topic, "cpu_info") == 0) {
         cJSON_AddStringToObject(response, "topic", topic);
-        dbg_cpu_registers(response);
+        dbg_cpu_info(response);
     }
     printf("%s\n", cJSON_Print(response));
     int n = ws_send(wsi_in, cJSON_PrintUnformatted(response));
