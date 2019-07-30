@@ -57,6 +57,10 @@ int websocket_on_receive(struct lws *wsi_in, char *str, int len) {
     } else if (strcmp(topic, "cpu_info") == 0) {
         cJSON_AddStringToObject(response, "topic", topic);
         dbg_cpu_info(response);
+    } else if (strcmp(topic, "cpu_step") == 0) {
+        dbg_cpu_step(response);
+    } else if (strcmp(topic, "reset") == 0) {
+        dbg_nes_reset(response);
     }
     printf("%s\n", cJSON_Print(response));
     int n = ws_send(wsi_in, cJSON_PrintUnformatted(response));

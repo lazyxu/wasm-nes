@@ -26,6 +26,10 @@ void nes_free(nes_t **nes) {
     }
 }
 
+void nes_reset(nes_t **nes) {
+    cpu_reset((*nes)->cpu);
+}
+
 int32_t nes_load(nes_t *nes, uint8_t *data, uint32_t data_len) {
     int32_t ret;
     nes_free(&nes);

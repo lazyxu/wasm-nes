@@ -83,9 +83,9 @@ void dbg_cpu_disassembly(cJSON *response) {
     char *opdata = NULL;
     uint16_t pc = cpu_read16(g_nes->cpu, RST_VECTOR);
     while (pc < RST_VECTOR) {
-        pc += cpu_disassembly(g_nes->cpu, pc, &hex, &opcode, &opdata);
         char pc_s[5] = {0};
         sprintf(pc_s, "%04X", pc);
+        pc += cpu_disassembly(g_nes->cpu, pc, &hex, &opcode, &opdata);
         cJSON *instruction = cJSON_CreateObject();
         cJSON_AddStringToObject(instruction, "address", pc_s);
         cJSON_AddStringToObject(instruction, "hex", hex);
@@ -127,4 +127,16 @@ void dbg_cpu_info(cJSON *response) {
         cJSON_AddItemToObject(stack, addr, cJSON_CreateString(val));
         // cJSON_AddItemToArray(stack, cJSON_CreateNumber(cpu_read(g_nes, i)));
     }
+}
+
+void dbg_cpu_step(cJSON *response) {
+    cpu_step(g_nes->cpu);
+    cJSON_AddStringToObject(response, "topic", "cpu_info");
+    dbg_cpu_info(response);
+}
+
+void dbg_nes_reset(cJSON *response) {
+    nes_reset(&g_nes);
+    cJSON_AddStringToObject(response, "topic", "cpu_info");
+    dbg_cpu_info(response);
 }

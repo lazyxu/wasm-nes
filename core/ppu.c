@@ -392,11 +392,11 @@ uint32_t *g_screen = NULL;
 
 void set_screen(uintptr_t address) {
     g_screen = (uint32_t *)address;
-    DEBUG_MSG("set_screen: %X\n", g_screen);
+    // DEBUG_MSG("set_screen: %X\n", g_screen);
 }
 
 void render_pixel(ppu_t *ppu) {
-    DEBUG_MSG("render_pixel: %X\n", g_screen);
+    // DEBUG_MSG("render_pixel: %X\n", g_screen);
     uint16_t x = CYCLE - 1;
     uint16_t y = SCANLINE;
     uint8_t color;

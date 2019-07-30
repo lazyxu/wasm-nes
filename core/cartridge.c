@@ -15,17 +15,23 @@ cartridge_t *cartridge_init() {
     return cart;
 }
 
-int32_t cartridge_load(cartridge_t *cart, uint8_t *data, uint32_t data_len) {
+int32_t cartridge_load(cartridge_t *cart, uint8_t *rom, uint32_t rom_size) {
     ASSERT(cart != NULL);
     ASSERT(cart->trainer == NULL);
     ASSERT(cart->prg_rom == NULL);
     ASSERT(cart->chr_rom == NULL);
-    if (data == NULL || data_len == 0) {
+    if (rom == NULL || rom_size == 0) {
         return EINVALID_ARGUMENT;
     }
-    uint8_t *data_end = data + data_len;
+    cart->rom_size = rom_size;
+    cart->rom = malloc(rom_size);
+    memcpy(cart->rom, rom, rom_size);
 
-    ines_header_t *header = (ines_header_t *)data;
+    uint8_t *rom_end = cart->rom + cart->rom_size;
+
+    uint8_t *rom_ptr = cart->rom;
+    ines_header_t *header = (ines_header_t *)rom_ptr;
+    printf("%X %X\n", (uint32_t)cart->rom, (uint32_t)rom_end);
 
     // Identify the rom as an iNES file: NES\x1a.
     if (header->magic != INES_FILE_MAGIC) {
@@ -62,19 +68,23 @@ int32_t cartridge_load(cartridge_t *cart, uint8_t *data, uint32_t data_len) {
     bool battery = (header->control_1 >> 1) & 1;
     DEBUG_MSG("battery: %d\n", battery);
     DEBUG_MSG("trainer: %d\n", header->control_1 & 0b100);
-    data = data + sizeof(ines_header_t);
+    rom_ptr += sizeof(ines_header_t);
 
     // Following the header is the 512-byte trainer, if one is present,
     // otherwise the ROM banks begin here, starting with PRG-ROM then CHR-ROM.
     if ((header->control_1 & 0b100) == 0b100) {
-        COPY_DATA(cart->trainer, TRAINER_SIZE);
+        cart->trainer = rom_ptr;
+        rom_ptr += TRAINER_SIZE;
     }
 
     // Load PRG-ROM banks:
-    COPY_DATA(cart->prg_rom, header->num_prg_rom_bank * PRG_ROM_SIZE);
+    cart->prg_rom = rom_ptr;
+    rom_ptr += header->num_prg_rom_bank * PRG_ROM_SIZE;
     if (header->num_chr_rom_bank != 0) {
+        cart->is_chr_ram = false;
         // Load CHR-ROM banks:
-        COPY_DATA(cart->chr_rom, header->num_chr_rom_bank * CHR_ROM_SIZE);
+        cart->chr_rom = rom_ptr;
+        rom_ptr += header->num_chr_rom_bank * CHR_ROM_SIZE;
     } else {
         // Provide CHR-ROM and CHR-RAM if not in the rom:
         header->num_chr_rom_bank = 1;
@@ -88,8 +98,8 @@ int32_t cartridge_load(cartridge_t *cart, uint8_t *data, uint32_t data_len) {
               cart->num_chr_rom_bank, cart->is_chr_ram);
 
     // Check if the contents of rom have been completely read.
-    if (data != data_end) {
-        DEBUG_MSG("%X %X\n", (uint32_t)data, (uint32_t)data_end);
+    if (rom_ptr != rom_end) {
+        DEBUG_MSG("%X %X\n", (uint32_t)rom_ptr, (uint32_t)rom_end);
         return EINVALID_INES_CONTENT;
     }
 
@@ -98,7 +108,13 @@ int32_t cartridge_load(cartridge_t *cart, uint8_t *data, uint32_t data_len) {
 
 void cartridge_free(cartridge_t **cart) {
     ASSERT((*cart) != NULL);
-    FREE((*cart)->trainer);
-    FREE((*cart)->prg_rom);
-    FREE((*cart)->chr_rom);
+    if ((*cart)->is_chr_ram) {
+        free((*cart)->chr_rom);
+    }
+    (*cart)->trainer = NULL;
+    (*cart)->num_prg_rom_bank = 0;
+    (*cart)->prg_rom = NULL;
+    (*cart)->num_chr_rom_bank = 0;
+    (*cart)->chr_rom = NULL;
+    (*cart)->mapper_no = 0;
 }
