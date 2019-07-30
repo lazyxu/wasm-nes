@@ -9,6 +9,7 @@
 
 #include "command.h"
 #include "dbg-nes.h"
+#include "dbg-utils.h"
 
 #define KGRN "\033[0;32;32m"
 #define KCYN "\033[0;36m"
@@ -23,19 +24,6 @@ static int destroy_flag = 0;
 
 static void INT_HANDLER(int signo) {
     destroy_flag = 0;
-}
-
-int ws_send(struct lws *wsi, const char *str) {
-    size_t len = strlen(str);
-    unsigned char *out = (unsigned char *)malloc(sizeof(unsigned char) *
-                                                 (LWS_SEND_BUFFER_PRE_PADDING + len + LWS_SEND_BUFFER_POST_PADDING));
-    /* setup the buffer */
-    memcpy(out + LWS_SEND_BUFFER_PRE_PADDING, str, len);
-    /* write out */
-    int n = lws_write(wsi, out + LWS_SEND_BUFFER_PRE_PADDING, len, LWS_WRITE_TEXT);
-    /* free the buffer */
-    free(out);
-    return n;
 }
 
 int websocket_on_receive(struct lws *wsi_in, char *str, int len) {
@@ -61,10 +49,25 @@ int websocket_on_receive(struct lws *wsi_in, char *str, int len) {
         dbg_cpu_step(response);
     } else if (strcmp(topic, "reset") == 0) {
         dbg_nes_reset(response);
+    } else if (strcmp(topic, "breakpoint") == 0) {
+        dbg_breakpoint(in);
+        cJSON_free(response);
+        response = in;
+        in = NULL;
+    } else if (strcmp(topic, "cpu_run") == 0) {
+        cJSON_AddStringToObject(response, "topic", topic);
+        dbg_cpu_run(wsi_in, response);
+    } else if (strcmp(topic, "cpu_pause") == 0) {
+        cJSON_AddStringToObject(response, "topic", topic);
+        dbg_cpu_pause(response);
     }
     printf("%s\n", cJSON_Print(response));
     int n = ws_send(wsi_in, cJSON_PrintUnformatted(response));
     cJSON_free(response);
+    response = NULL;
+    if (in != NULL) {
+        cJSON_free(in);
+    }
     return n;
 }
 

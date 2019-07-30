@@ -1,10 +1,13 @@
+#include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "cpu.h"
 #include "mirror.h"
 #include "nes.h"
 #include "port.h"
 #include "ppu.h"
+#include "dbg-utils.h"
 
 static nes_t *g_nes = NULL;
 uint32_t *screen = NULL;
@@ -82,8 +85,8 @@ void dbg_cpu_disassembly(cJSON *response) {
     char *opcode = NULL;
     char *opdata = NULL;
     uint16_t pc = cpu_read16(g_nes->cpu, RST_VECTOR);
+    char pc_s[5] = {0};
     while (pc < RST_VECTOR) {
-        char pc_s[5] = {0};
         sprintf(pc_s, "%04X", pc);
         pc += cpu_disassembly(g_nes->cpu, pc, &hex, &opcode, &opdata);
         cJSON *instruction = cJSON_CreateObject();
@@ -93,6 +96,17 @@ void dbg_cpu_disassembly(cJSON *response) {
         cJSON_AddStringToObject(instruction, "opdata", opdata);
         cJSON_AddItemToArray(instructions, instruction);
     }
+    cJSON_AddObjectToObject(response, "vectors");
+    cJSON *vectors = cJSON_GetObjectItem(response, "vectors");
+    char nmi[5] = {0};
+    sprintf(nmi, "%04X", cpu_read16(g_nes->cpu, NMI_VECTOR));
+    cJSON_AddStringToObject(vectors, "nmi", nmi);
+    char rst[5] = {0};
+    sprintf(rst, "%04X", cpu_read16(g_nes->cpu, RST_VECTOR));
+    cJSON_AddStringToObject(vectors, "rst", rst);
+    char irq[5] = {0};
+    sprintf(irq, "%04X", cpu_read16(g_nes->cpu, IRQ_VECTOR));
+    cJSON_AddStringToObject(vectors, "irq", irq);
 }
 
 void dbg_cpu_info(cJSON *response) {
@@ -139,4 +153,78 @@ void dbg_nes_reset(cJSON *response) {
     nes_reset(&g_nes);
     cJSON_AddStringToObject(response, "topic", "cpu_info");
     dbg_cpu_info(response);
+}
+#define BREAKPOINT_SIZE 100
+#define INVALID_BREAKPOINT 0
+static uint16_t breakpoint[BREAKPOINT_SIZE] = {INVALID_BREAKPOINT};
+uint8_t breakpoint_cnt = 0;
+void dbg_breakpoint(cJSON *in) {
+    char *str = cJSON_GetObjectItem(in, "address")->valuestring;
+    uint16_t address;
+    sscanf(str, "%hX", &address);
+    bool enable = cJSON_GetObjectItem(in, "enable")->valueint;
+    printf("%d %d\n", address, enable);
+    for (uint8_t i = 0; i < BREAKPOINT_SIZE; i++) {
+        if (enable && breakpoint[i] == INVALID_BREAKPOINT) {
+            breakpoint[i] = address;
+            break;
+        }
+        if (!enable && breakpoint[i] == address) {
+            breakpoint[i] = INVALID_BREAKPOINT;
+        }
+    }
+    for (uint8_t i = 0; i < BREAKPOINT_SIZE; i++) {
+        if (breakpoint[i] != INVALID_BREAKPOINT) {
+            printf("breakpoint: %d\n", breakpoint[i]);
+        }
+    }
+}
+
+#include <signal.h>
+#include <sys/time.h>
+#include <time.h>
+
+static int count = 0;
+static struct itimerval oldtv;
+
+void set_timer() {
+    struct itimerval itv;
+    itv.it_interval.tv_sec = 0;
+    itv.it_interval.tv_usec = 1000*500;
+    itv.it_value.tv_sec = 0;
+    itv.it_value.tv_usec = 1;
+    setitimer(ITIMER_REAL, &itv, &oldtv);
+}
+
+void clear_time() {
+    struct itimerval value;
+    value.it_value.tv_sec = 0;
+    value.it_value.tv_usec = 0;
+    value.it_interval = value.it_value;
+    setitimer(ITIMER_REAL, &value, NULL);
+}
+
+void dbg_cpu_pause(cJSON *response) {
+    clear_time();
+}
+
+static struct lws *g_wsi = NULL;
+void signal_handler(int m) {
+    cpu_step(g_nes->cpu);
+    cJSON *response = cJSON_CreateObject();
+    cJSON_AddStringToObject(response, "topic", "cpu_info");
+    dbg_cpu_info(response);
+    int n = ws_send(g_wsi, cJSON_PrintUnformatted(response));
+    cJSON_free(response);
+    for (uint8_t i = 0; i < BREAKPOINT_SIZE; i++) {
+        if (breakpoint[i] == g_nes->cpu->pc) {
+            clear_time();
+        }
+    }
+}
+
+void dbg_cpu_run(struct lws *wsi_in, cJSON *response) {
+    g_wsi = wsi_in;
+    signal(SIGALRM, signal_handler);
+    set_timer();
 }
