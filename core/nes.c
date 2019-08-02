@@ -27,6 +27,7 @@ void nes_free(nes_t **nes) {
 }
 
 void nes_reset(nes_t **nes) {
+    ASSERT(*nes != NULL);
     cpu_reset((*nes)->cpu);
 }
 

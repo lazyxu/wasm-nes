@@ -3,11 +3,14 @@
 
 int dbg_nes_init(void);
 
-void get_rom_list(cJSON *response);
-void dbg_nes_load_file(cJSON *response, const char *filepath);
-void dbg_cpu_disassembly(cJSON *response);
-void dbg_cpu_info(cJSON *response);
-void dbg_cpu_step(cJSON *response);
-void dbg_breakpoint(cJSON *in);
-void dbg_nes_reset(cJSON *response);
+void get_rom_list(struct lws *wsi, cJSON *in, const char *topic);
+void dbg_nes_load_file(struct lws *wsi, cJSON *in, const char *topic);
+void dbg_cpu_disassembly(struct lws *wsi, cJSON *in, const char *topic);
+void dbg_cpu_info(struct lws *wsi, cJSON *in, const char *topic);
+void dbg_cpu_step(struct lws *wsi, cJSON *in, const char *topic);
+void dbg_breakpoint(struct lws *wsi, cJSON *in, const char *topic);
+void dbg_nes_reset(struct lws *wsi, cJSON *in, const char *topic);
+void dbg_cpu_run(struct lws *wsi, cJSON *in, const char *topic);
+void dbg_cpu_pause(struct lws *wsi, cJSON *in, const char *topic);
+void dbg_cpu_mem(struct lws *wsi, cJSON *in, const char *topic);
 #endif // DBG_NES_H

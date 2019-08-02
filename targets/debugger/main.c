@@ -26,49 +26,29 @@ static void INT_HANDLER(int signo) {
     destroy_flag = 0;
 }
 
-int websocket_on_receive(struct lws *wsi_in, char *str, int len) {
-    if (str == NULL || wsi_in == NULL)
-        return -1;
+static char *topics[] = {"romlist",    "loadrom", "cpu_instructions", "cpu_info", "cpu_step", "reset",
+                         "breakpoint", "cpu_run", "cpu_pause",        "cpu_mem",  NULL};
+static void (*funcs[])(struct lws *, cJSON *, const char *) = {
+    get_rom_list,   dbg_nes_load_file, dbg_cpu_disassembly, dbg_cpu_info, dbg_cpu_step, dbg_nes_reset,
+    dbg_breakpoint, dbg_cpu_run,       dbg_cpu_pause,       dbg_cpu_mem,  NULL};
+
+extern struct lws *g_wsi;
+void websocket_on_receive(struct lws *wsi, char *str, int len) {
+    if (str == NULL || wsi == NULL) {
+        return;
+    }
+    if (g_wsi == NULL) {
+        g_wsi = wsi;
+    }
     cJSON *in = cJSON_Parse(str);
     printf("%s\n", cJSON_Print(in));
     char *topic = cJSON_GetStringValue(cJSON_GetObjectItem(in, "topic"));
-    cJSON *payload = cJSON_GetObjectItem(in, "payload");
-    cJSON *response = cJSON_CreateObject();
-    if (strcmp(topic, "romlist") == 0) {
-        cJSON_AddStringToObject(response, "topic", topic);
-        get_rom_list(response);
-    } else if (strcmp(topic, "loadrom") == 0) {
-        dbg_nes_load_file(response, cJSON_GetStringValue(payload));
-    } else if (strcmp(topic, "cpu_instructions") == 0) {
-        cJSON_AddStringToObject(response, "topic", topic);
-        dbg_cpu_disassembly(response);
-    } else if (strcmp(topic, "cpu_info") == 0) {
-        cJSON_AddStringToObject(response, "topic", topic);
-        dbg_cpu_info(response);
-    } else if (strcmp(topic, "cpu_step") == 0) {
-        dbg_cpu_step(response);
-    } else if (strcmp(topic, "reset") == 0) {
-        dbg_nes_reset(response);
-    } else if (strcmp(topic, "breakpoint") == 0) {
-        dbg_breakpoint(in);
-        cJSON_free(response);
-        response = in;
-        in = NULL;
-    } else if (strcmp(topic, "cpu_run") == 0) {
-        cJSON_AddStringToObject(response, "topic", topic);
-        dbg_cpu_run(wsi_in, response);
-    } else if (strcmp(topic, "cpu_pause") == 0) {
-        cJSON_AddStringToObject(response, "topic", topic);
-        dbg_cpu_pause(response);
+    for (size_t i = 0; topics[i] != NULL && funcs[i] != NULL; i++) {
+        if (strcmp(topic, topics[i]) == 0) {
+            funcs[i](wsi, in, topic);
+        }
     }
-    printf("%s\n", cJSON_Print(response));
-    int n = ws_send(wsi_in, cJSON_PrintUnformatted(response));
-    cJSON_free(response);
-    response = NULL;
-    if (in != NULL) {
-        cJSON_free(in);
-    }
-    return n;
+    cJSON_free(in);
 }
 
 static int ws_service_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len) {
